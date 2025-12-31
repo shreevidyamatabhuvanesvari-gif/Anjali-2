@@ -1,13 +1,16 @@
 // TopicRules.js
-// Responsibility: प्रश्न के विषय (Topic) की पहचान करना
-// और उसी विषय से संबंधित निश्चित उत्तर लौटाना
-// Rule-based | Deterministic | No AI/ML | No guessing
+// Responsibility:
+// - उपयोगकर्ता के प्रश्न से विषय (Topic) पहचानना
+// - AnswerBank से केवल KEY के आधार पर उत्तर लौटाना
+// Rule-based | Deterministic | Voice-Safe | No AI/ML | No string building
+
+import { AnswerBank } from "./AnswerBank.js";
 
 export class TopicRules {
 
   /**
-   * @param {string} text - उपयोगकर्ता का इनपुट
-   * @returns {string|null} - विषय-विशेष उत्तर या null
+   * @param {string} text
+   * @returns {string|null}
    */
   static getTopicAnswer(text) {
     if (typeof text !== "string") return null;
@@ -22,42 +25,42 @@ export class TopicRules {
       this.hasAny(query, ["तुम", "आप", "अंजली"]) &&
       this.hasAny(query, ["कौन", "नाम"])
     ) {
-      return "मेरा नाम अंजली है।";
+      return AnswerBank.IDENTITY.NAME;
     }
 
     /* =====================================================
        एप / सिस्टम
     ===================================================== */
     if (this.hasAny(query, ["एप", "ऐप", "प्रोग्राम", "सिस्टम"])) {
-      return "यह एक नियम-आधारित संवाद एप है जो प्रश्न के विषय के अनुसार उत्तर देता है।";
+      return AnswerBank.APP.DESCRIPTION;
     }
 
     /* =====================================================
        प्रेम / संबंध
     ===================================================== */
     if (this.hasAny(query, ["प्रेम", "प्यार", "रिश्ता", "संबंध"])) {
-      return "प्रेम में समझ, सम्मान और धैर्य आवश्यक होते हैं।";
+      return AnswerBank.EMOTIONAL.EMPATHY;
     }
 
     /* =====================================================
        विश्वास / ईमानदारी
     ===================================================== */
     if (this.hasAny(query, ["विश्वास", "भरोसा", "ईमानदारी", "सत्य"])) {
-      return "विश्वास निरंतर आचरण से बनता है, केवल शब्दों से नहीं।";
+      return AnswerBank.ETHICAL.MORALITY;
     }
 
     /* =====================================================
        समय / धैर्य
     ===================================================== */
     if (this.hasAny(query, ["समय", "धैर्य", "प्रतीक्षा"])) {
-      return "समय और धैर्य किसी भी प्रक्रिया को स्थिर बनाते हैं।";
+      return AnswerBank.EMOTIONAL.CALM;
     }
 
     /* =====================================================
        उद्देश्य / लक्ष्य
     ===================================================== */
     if (this.hasAny(query, ["उद्देश्य", "लक्ष्य", "मकसद"])) {
-      return "स्पष्ट उद्देश्य ही सही दिशा निर्धारित करता है।";
+      return AnswerBank.PRACTICAL.SOLUTION;
     }
 
     /* =====================================================
