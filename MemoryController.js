@@ -1,6 +1,5 @@
 // MemoryController.js
-// Long-Term Memory System using IndexedDB
-// No assumptions, no placeholders
+// Long-Term Memory System using IndexedDB (SAFE & READY-AWARE)
 
 export class MemoryController {
 
@@ -8,6 +7,8 @@ export class MemoryController {
     this.dbName = "ANJALI_LONG_TERM_MEMORY";
     this.dbVersion = 1;
     this.db = null;
+    this.ready = false;
+    this.queue = [];
 
     this._init();
   }
@@ -19,49 +20,33 @@ export class MemoryController {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
 
-      // Conversations
-      if (!db.objectStoreNames.contains("Conversations")) {
-        db.createObjectStore("Conversations", {
-          keyPath: "id",
-          autoIncrement: true
-        });
-      }
+      const stores = [
+        "Conversations",
+        "EmotionalPatterns",
+        "TrustHistory",
+        "SilenceMoments",
+        "LearningGrowth"
+      ];
 
-      // Emotional Patterns
-      if (!db.objectStoreNames.contains("EmotionalPatterns")) {
-        db.createObjectStore("EmotionalPatterns", {
-          keyPath: "id",
-          autoIncrement: true
-        });
-      }
-
-      // Trust History
-      if (!db.objectStoreNames.contains("TrustHistory")) {
-        db.createObjectStore("TrustHistory", {
-          keyPath: "id",
-          autoIncrement: true
-        });
-      }
-
-      // Silence Moments
-      if (!db.objectStoreNames.contains("SilenceMoments")) {
-        db.createObjectStore("SilenceMoments", {
-          keyPath: "id",
-          autoIncrement: true
-        });
-      }
-
-      // Learning Growth
-      if (!db.objectStoreNames.contains("LearningGrowth")) {
-        db.createObjectStore("LearningGrowth", {
-          keyPath: "id",
-          autoIncrement: true
-        });
-      }
+      stores.forEach(name => {
+        if (!db.objectStoreNames.contains(name)) {
+          db.createObjectStore(name, {
+            keyPath: "id",
+            autoIncrement: true
+          });
+        }
+      });
     };
 
     request.onsuccess = (event) => {
       this.db = event.target.result;
+      this.ready = true;
+
+      // 🔁 queued writes flush
+      this.queue.forEach(job => {
+        this._write(job.store, job.data);
+      });
+      this.queue = [];
     };
 
     request.onerror = () => {
@@ -69,33 +54,34 @@ export class MemoryController {
     };
   }
 
-  /* ---------- Generic Writer ---------- */
+  /* ---------- Safe Writer ---------- */
   _write(storeName, data) {
-    if (!this.db) return;
+    if (!this.ready) {
+      this.queue.push({ store: storeName, data });
+      return;
+    }
 
     const tx = this.db.transaction(storeName, "readwrite");
     const store = tx.objectStore(storeName);
 
     store.add({
       timestamp: Date.now(),
-      data: data
+      data
     });
   }
 
-  /* ---------- Generic Reader ---------- */
+  /* ---------- Reader ---------- */
   _readAll(storeName, callback) {
-    if (!this.db) return;
+    if (!this.ready) return;
 
     const tx = this.db.transaction(storeName, "readonly");
     const store = tx.objectStore(storeName);
-    const request = store.getAll();
+    const req = store.getAll();
 
-    request.onsuccess = () => {
-      callback(request.result);
-    };
+    req.onsuccess = () => callback(req.result);
   }
 
-  /* ---------- Public Memory APIs ---------- */
+  /* ---------- Public APIs ---------- */
 
   rememberConversation(text) {
     this._write("Conversations", text);
@@ -117,23 +103,23 @@ export class MemoryController {
     this._write("LearningGrowth", detail);
   }
 
-  recallConversations(callback) {
-    this._readAll("Conversations", callback);
+  recallConversations(cb) {
+    this._readAll("Conversations", cb);
   }
 
-  recallEmotions(callback) {
-    this._readAll("EmotionalPatterns", callback);
+  recallEmotions(cb) {
+    this._readAll("EmotionalPatterns", cb);
   }
 
-  recallTrustHistory(callback) {
-    this._readAll("TrustHistory", callback);
+  recallTrustHistory(cb) {
+    this._readAll("TrustHistory", cb);
   }
 
-  recallSilenceMoments(callback) {
-    this._readAll("SilenceMoments", callback);
+  recallSilenceMoments(cb) {
+    this._readAll("SilenceMoments", cb);
   }
 
-  recallLearningGrowth(callback) {
-    this._readAll("LearningGrowth", callback);
+  recallLearningGrowth(cb) {
+    this._readAll("LearningGrowth", cb);
   }
 }
