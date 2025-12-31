@@ -2,50 +2,56 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>अंजली</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <title>अंजली — संवाद प्रारंभ</title>
+
+  <!-- न्यूनतम, शुद्ध CSS -->
   <style>
-    body {
+    html, body {
       margin: 0;
-      height: 100vh;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+      background: #faf7f4;
+    }
+
+    /* केंद्र में बटन */
+    .center {
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: sans-serif;
-      background: #fff;
     }
 
-    .center-box {
-      text-align: center;
-    }
-
-    #startTalk {
-      margin-top: 20px;
-      padding: 14px 28px;
+    button {
+      padding: 18px 32px;
       font-size: 18px;
-      border-radius: 8px;
+      border-radius: 12px;
       border: none;
-      background-color: #6a1b9a;
-      color: #fff;
       cursor: pointer;
+      background: #6b2d2d;
+      color: #ffffff;
     }
 
-    #startTalk:active {
-      transform: scale(0.97);
+    button:active {
+      transform: scale(0.98);
     }
   </style>
 </head>
 
 <body>
 
-  <div class="center-box">
-    <h2>🌸 अंजली — संवाद प्रारंभ</h2>
-    <button id="startTalk">बात शुरू करें</button>
+  <!-- केवल एक ही बटन -->
+  <div class="center">
+    <button id="startTalk">
+      अंजली — संवाद प्रारंभ
+    </button>
   </div>
 
-  <!-- 🔗 Single Authority Connector -->
-  <script type="module" src="AnjaliCoreBridge.js"></script>
+  <!-- केवल एक ही script, module के रूप में -->
+  <!-- यही पूरा एप शुरू करता है -->
+  <script type="module" src="./AnjaliCoreBridge.js"></script>
 
 </body>
 </html>
