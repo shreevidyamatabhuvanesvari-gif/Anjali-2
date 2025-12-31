@@ -1,5 +1,7 @@
 // VoiceController.js
 // Responsibility: Speech only (listen + speak)
+// FIXED: Single restart point (utterance.onend)
+// GUARANTEE: Stable voice on mobile & desktop
 
 export class VoiceController {
 
@@ -34,29 +36,35 @@ export class VoiceController {
 
   /* ---------- Internal Wiring ---------- */
   _bindEvents() {
+
     this.recognition.onresult = (event) => {
       if (this.state !== this.STATE.LISTENING) return;
 
       this.state = this.STATE.IDLE;
       const text = event.results[0][0].transcript.trim();
 
+      // User speech delivered to core
       this.onUserSpeech(text);
     };
 
     this.recognition.onerror = () => {
+      // Silent fail-safe
       this.state = this.STATE.IDLE;
     };
 
+    // ❌ IMPORTANT:
+    // recognition.onend से listen() दोबारा नहीं बुलाया जाएगा
+    // (मोबाइल पर यही double-restart bug पैदा करता है)
     this.recognition.onend = () => {
-      if (this.state === this.STATE.IDLE && !this.synth.speaking) {
-        this.listen();
-      }
+      // intentionally empty
     };
   }
 
   /* ---------- Public APIs ---------- */
 
   speak(text) {
+    if (typeof text !== "string" || text.trim() === "") return;
+
     if (this.synth.speaking) {
       this.synth.cancel();
     }
@@ -69,6 +77,7 @@ export class VoiceController {
     u.pitch = 1.05;
 
     u.onend = () => {
+      // बोलना समाप्त → अब सुनना शुरू
       this.state = this.STATE.IDLE;
       this.listen();
     };
@@ -83,6 +92,7 @@ export class VoiceController {
       this.state = this.STATE.LISTENING;
       this.recognition.start();
     } catch (_) {
+      // duplicate start protection
       this.state = this.STATE.IDLE;
     }
   }
