@@ -1,12 +1,12 @@
 // LearningController.js
-// Responsibility: प्रश्न समझना और उपयुक्त उत्तर देना
-// NO voice, NO memory, ONLY thinking logic
+// Responsibility: प्रश्न के अनुसार सटीक उत्तर देना
+// Rule-based, no AI/ML, no guessing
 
 export class LearningController {
 
   learn(input) {
-    if (!input || typeof input !== "string") {
-      return "मैं आपकी बात समझ नहीं पाई, कृपया फिर से कहिए।";
+    if (typeof input !== "string" || input.trim() === "") {
+      return "कृपया अपना प्रश्न स्पष्ट रूप से पूछिए।";
     }
 
     const text = input.trim();
@@ -16,56 +16,63 @@ export class LearningController {
       return this.answerQuestion(text);
     }
 
-    // 2️⃣ भाव पहचान
-    if (this.isSad(text)) {
-      return "लगता है यह बात आपको दुखी कर रही है। मैं आपकी बात ध्यान से सुन रही हूँ।";
-    }
-
-    if (this.isHappy(text)) {
-      return "यह सुनकर अच्छा लगा। आपकी बातों में सकारात्मकता है।";
-    }
-
-    // 3️⃣ सामान्य उत्तर
-    return "मैं आपकी बात समझ रही हूँ। आगे बताइए।";
+    // 2️⃣ सामान्य कथन
+    return "मैं सुन रही हूँ। यदि कोई प्रश्न है तो स्पष्ट पूछिए।";
   }
 
-  /* ---------- Question Handling ---------- */
+  /* =====================================================
+     QUESTION HANDLER
+  ===================================================== */
 
   answerQuestion(text) {
+
+    // --- पहचान / नाम ---
+    if (this.includesAny(text, ["तुम", "आप", "अंजली"]) &&
+        this.includesAny(text, ["कौन", "नाम"])) {
+      return "मेरा नाम अंजली है।";
+    }
+
+    // --- एप से संबंधित ---
+    if (this.includesAny(text, ["एप", "ऐप", "प्रोग्राम"])) {
+      return "यह एक संवाद करने वाला एप है, जो आपकी बात सुनकर उत्तर देता है।";
+    }
+
+    // --- क्यों ---
     if (text.includes("क्यों")) {
-      return "क्यों का उत्तर अक्सर कारणों में छिपा होता है। आप पूरा संदर्भ बताएँगे?";
+      return "क्यों का उत्तर कारण पर निर्भर करता है। कृपया जिस विषय पर पूछ रहे हैं, उसे स्पष्ट करें।";
     }
 
+    // --- कैसे ---
     if (text.includes("कैसे")) {
-      return "कैसे का उत्तर प्रक्रिया से जुड़ा होता है। आप किस हिस्से के बारे में जानना चाहते हैं?";
+      return "कैसे का उत्तर प्रक्रिया से जुड़ा होता है। आप किस प्रक्रिया के बारे में जानना चाहते हैं?";
     }
 
+    // --- क्या ---
     if (text.includes("क्या")) {
-      return "आप जो पूछ रहे हैं वह महत्वपूर्ण है। कृपया थोड़ा और स्पष्ट करें।";
+      return "आप जो पूछ रहे हैं, उसका उत्तर विषय पर निर्भर है। कृपया थोड़ा और स्पष्ट करें।";
     }
 
-    // fallback (कम ही आएगा)
-    return "आपका प्रश्न समझ में आ रहा है। मैं सोचकर उत्तर देने की कोशिश कर रही हूँ।";
+    // --- कब / कहाँ / कौन ---
+    if (this.includesAny(text, ["कब", "कहाँ", "कौन"])) {
+      return "इस प्रश्न का उत्तर देने के लिए संदर्भ आवश्यक है। कृपया पूरा प्रश्न बताइए।";
+    }
+
+    // --- fallback (बहुत कम आएगा) ---
+    return "आपका प्रश्न समझ में आ रहा है, लेकिन विषय स्पष्ट नहीं है।";
   }
 
-  /* ---------- Helpers ---------- */
+  /* =====================================================
+     HELPERS
+  ===================================================== */
 
   isQuestion(text) {
     return (
       text.endsWith("?") ||
-      text.includes("क्या") ||
-      text.includes("क्यों") ||
-      text.includes("कैसे")
+      this.includesAny(text, ["क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन"])
     );
   }
 
-  isSad(text) {
-    const sadWords = ["दुख", "परेशान", "थक", "अकेला", "उदास", "भारी"];
-    return sadWords.some(word => text.includes(word));
-  }
-
-  isHappy(text) {
-    const happyWords = ["खुश", "अच्छा", "प्रसन्न", "मज़ा", "संतोष"];
-    return happyWords.some(word => text.includes(word));
+  includesAny(text, words) {
+    return words.some(word => text.includes(word));
   }
 }
