@@ -1,15 +1,16 @@
 /* =========================================================
    AnjaliCoreBridge.js
-   🔗 Single Authority Connector
-   FINAL STABLE VOICE + LEARNING FLOW
+   🔗 FINAL VOICE + LEARNING + SAFE MEMORY
 ========================================================= */
 
 /* ---------- Imports ---------- */
 import { AppIdentity } from "./AppIdentity.js";
 import { LearningController } from "./LearningController.js";
+import { MemoryController } from "./MemoryController.js";
 
-/* ---------- Learning ---------- */
+/* ---------- Core Instances ---------- */
 const learner = new LearningController();
+const memory = new MemoryController();
 
 /* ---------- Speech APIs ---------- */
 const SpeechRecognition =
@@ -19,13 +20,11 @@ if (!SpeechRecognition) {
   alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
 }
 
-/* ---------- Recognition ---------- */
 const recognition = new SpeechRecognition();
 recognition.lang = "hi-IN";
 recognition.continuous = false;
 recognition.interimResults = false;
 
-/* ---------- Synthesis ---------- */
 const synth = window.speechSynthesis;
 
 /* ---------- State ---------- */
@@ -35,24 +34,27 @@ let listening = false;
    SPEAK
 ========================================================= */
 function speak(text) {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "hi-IN";
-  utterance.rate = 0.95;
-  utterance.pitch = 1.05;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "hi-IN";
+  u.rate = 0.95;
+  u.pitch = 1.05;
 
-  utterance.onend = () => {
-    startListening();   // बोलना खत्म → सुनना शुरू
+  // 🔒 Memory write (NON-BLOCKING)
+  memory.rememberLearning(text);
+
+  u.onend = () => {
+    startListening();
   };
 
   synth.cancel();
-  synth.speak(utterance);
+  synth.speak(u);
 }
 
 /* =========================================================
    LISTEN
 ========================================================= */
 function startListening() {
-  if (listening) return;      // 🔒 Guard
+  if (listening) return;
   listening = true;
   recognition.start();
 }
@@ -62,14 +64,16 @@ recognition.onresult = (event) => {
   listening = false;
 
   const text = event.results[0][0].transcript.trim();
-  const reply = learner.learn(text);
 
+  // 🔒 Memory write (NON-BLOCKING)
+  memory.rememberConversation(text);
+
+  const reply = learner.learn(text);
   speak(reply);
 };
 
 /* ---------- Error ---------- */
-recognition.onerror = (event) => {
-  console.error("Speech recognition error:", event.error);
+recognition.onerror = () => {
   listening = false;
 };
 
