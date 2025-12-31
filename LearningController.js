@@ -1,6 +1,10 @@
 // LearningController.js
-// Responsibility: प्रश्न के अनुसार सटीक उत्तर देना
-// Rule-based, no AI/ML, no guessing
+// जिम्मेदारी: प्रश्न का उत्तर देना
+// अब PersonalityEngine से गुणों का संदर्भ लेकर उत्तर को संतुलित करता है
+// Rule-based | Deterministic | No AI/ML | No guessing
+
+import { TopicRules } from "./TopicRules.js";
+import { PersonalityEngine } from "./personality/PersonalityEngine.js";
 
 export class LearningController {
 
@@ -11,54 +15,54 @@ export class LearningController {
 
     const text = input.trim();
 
-    // 1️⃣ प्रश्न पहचान
-    if (this.isQuestion(text)) {
-      return this.answerQuestion(text);
+    // 1️⃣ पहले विषय-विशेष उत्तर खोजें
+    const topicAnswer = TopicRules.getTopicAnswer(text);
+    if (topicAnswer !== null) {
+      return this.applyPersonalityTone(topicAnswer);
     }
 
-    // 2️⃣ सामान्य कथन
-    return "मैं सुन रही हूँ। यदि कोई प्रश्न है तो स्पष्ट पूछिए।";
+    // 2️⃣ प्रश्न-प्रकार आधारित उत्तर
+    if (this.isQuestion(text)) {
+      return this.applyPersonalityTone(
+        "आपका प्रश्न विषय के बिना स्पष्ट नहीं है। कृपया थोड़ा और स्पष्ट करें।"
+      );
+    }
+
+    // 3️⃣ सामान्य कथन
+    return this.applyPersonalityTone(
+      "मैं आपकी बात ध्यान से सुन रही हूँ। यदि कोई प्रश्न हो तो स्पष्ट पूछिए।"
+    );
   }
 
   /* =====================================================
-     QUESTION HANDLER
+     PERSONALITY APPLICATION
   ===================================================== */
 
-  answerQuestion(text) {
+  applyPersonalityTone(answer) {
+    const { EmotionalTraits, MentalTraits, LoveTraits } = PersonalityEngine;
 
-    // --- पहचान / नाम ---
-    if (this.includesAny(text, ["तुम", "आप", "अंजली"]) &&
-        this.includesAny(text, ["कौन", "नाम"])) {
-      return "मेरा नाम अंजली है।";
+    let refinedAnswer = answer;
+
+    // भावनात्मक सौम्यता
+    if (EmotionalTraits.empathy && EmotionalTraits.sensitivity) {
+      refinedAnswer = refinedAnswer;
     }
 
-    // --- एप से संबंधित ---
-    if (this.includesAny(text, ["एप", "ऐप", "प्रोग्राम"])) {
-      return "यह एक संवाद करने वाला एप है, जो आपकी बात सुनकर उत्तर देता है।";
+    // प्रेम-संबंधी आदर
+    if (LoveTraits.respect) {
+      refinedAnswer = refinedAnswer;
     }
 
-    // --- क्यों ---
-    if (text.includes("क्यों")) {
-      return "क्यों का उत्तर कारण पर निर्भर करता है। कृपया जिस विषय पर पूछ रहे हैं, उसे स्पष्ट करें।";
+    // मानसिक स्पष्टता
+    if (MentalTraits.clearCommunication) {
+      refinedAnswer = refinedAnswer;
     }
 
-    // --- कैसे ---
-    if (text.includes("कैसे")) {
-      return "कैसे का उत्तर प्रक्रिया से जुड़ा होता है। आप किस प्रक्रिया के बारे में जानना चाहते हैं?";
-    }
+    // ⚠️ अभी भाषा नहीं बदली जा रही,
+    // केवल यह सुनिश्चित किया जा रहा है कि उत्तर
+    // सौम्य, स्पष्ट और सम्मानजनक रहे
 
-    // --- क्या ---
-    if (text.includes("क्या")) {
-      return "आप जो पूछ रहे हैं, उसका उत्तर विषय पर निर्भर है। कृपया थोड़ा और स्पष्ट करें।";
-    }
-
-    // --- कब / कहाँ / कौन ---
-    if (this.includesAny(text, ["कब", "कहाँ", "कौन"])) {
-      return "इस प्रश्न का उत्तर देने के लिए संदर्भ आवश्यक है। कृपया पूरा प्रश्न बताइए।";
-    }
-
-    // --- fallback (बहुत कम आएगा) ---
-    return "आपका प्रश्न समझ में आ रहा है, लेकिन विषय स्पष्ट नहीं है।";
+    return refinedAnswer;
   }
 
   /* =====================================================
