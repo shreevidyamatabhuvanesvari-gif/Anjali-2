@@ -1,36 +1,48 @@
 /* =========================================================
    AnjaliCoreBridge.js
-   🔗 SINGLE AUTHORITY CONNECTOR (PURE)
+   🔗 Single Authority Connector (PURE ORCHESTRATION)
+   Responsibility:
+   - Voice ↔ Learning ↔ Memory को जोड़ना
+   - IdentityGuard के माध्यम से सुरक्षित संबोधन
 ========================================================= */
 
-import { AppIdentity } from "./AppIdentity.js";
+/* ---------- Imports ---------- */
 import { LearningController } from "./LearningController.js";
 import { MemoryController } from "./MemoryController.js";
 import { VoiceController } from "./VoiceController.js";
+import { getSafeLoverName, getSafeAppName } from "./IdentityGuard.js";
 
 /* ---------- Core Instances ---------- */
 const learner = new LearningController();
 const memory  = new MemoryController();
 
 /* ---------- Voice Wiring ---------- */
+/*
+  VoiceController केवल बोलना/सुनना करता है।
+  जब यूज़र बोलता है, यह callback बुलाता है।
+*/
 const voice = new VoiceController((userText) => {
 
-  // 1️⃣ Memory (side-effect only)
+  // 1️⃣ स्मृति: यूज़र का कथन (side-effect only)
   memory.rememberConversation(userText);
 
-  // 2️⃣ Learning (decision)
+  // 2️⃣ सीख/निर्णय: उत्तर बनाना
   const reply = learner.learn(userText);
 
-  // 3️⃣ Memory (side-effect only)
+  // 3️⃣ स्मृति: अंजली का उत्तर (side-effect only)
   memory.rememberLearning(reply);
 
-  // 4️⃣ Voice output
+  // 4️⃣ आवाज़: उत्तर बोलना
   voice.speak(reply);
 });
 
 /* ---------- UI Entry Point ---------- */
 document.getElementById("startTalk").addEventListener("click", () => {
-  voice.speak(
-    `नमस्ते ${AppIdentity.loverName}, मैं ${AppIdentity.appName} हूँ।`
-  );
+
+  // 🔒 IdentityGuard के माध्यम से सुरक्षित नाम
+  const loverName = getSafeLoverName();
+  const appName   = getSafeAppName();
+
+  // प्रारंभिक संबोधन
+  voice.speak(`नमस्ते ${loverName}, मैं ${appName} हूँ।`);
 });
