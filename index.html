@@ -9,14 +9,16 @@
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
+      min-height: 100%;
       font-family: sans-serif;
       background: #faf7f4;
     }
 
-    /* केंद्र में बटन */
+    /* =========================
+       MAIN CENTER AREA
+    ========================= */
     .center {
-      height: 100%;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -43,18 +45,34 @@
     }
 
     /* =========================
-       LEARNING PANEL (Teach)
+       MODAL BASE (COMMON)
     ========================= */
-    #learningPanel {
+    .modal {
       display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 999;
       padding: 20px;
-      max-width: 1000px;
-      margin: 20px auto;
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow-y: auto;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
+    .modal-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 1000px;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+    }
+
+    /* =========================
+       LEARNING INPUT (1000 Q-A)
+    ========================= */
     #learningInput {
       width: 100%;
       min-height: 60vh;
@@ -64,25 +82,14 @@
       line-height: 1.6;
       box-sizing: border-box;
     }
-
-    /* =========================
-       VIEWER PANEL (See Learned)
-    ========================= */
-    #learningViewerPanel {
-      display: none;
-      padding: 20px;
-      max-width: 1000px;
-      margin: 20px auto;
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
   </style>
 </head>
 
 <body>
 
-  <!-- CENTERED MAIN BUTTONS -->
+  <!-- =========================
+       CENTERED MAIN BUTTONS
+  ========================= -->
   <div class="center">
     <div class="stack">
       <button id="startTalk">अंजली — संवाद प्रारंभ</button>
@@ -92,41 +99,45 @@
   </div>
 
   <!-- =========================
-       LEARNING PANEL (Teach)
+       LEARNING PANEL (MODAL)
   ========================= -->
-  <div id="learningPanel">
-    <h3>प्रश्न–उत्तर सिखाएँ (अधिकतम 1000)</h3>
-    <p style="font-size:14px;color:#444;">
-      फ़ॉर्मेट:
-      <br>Q: प्रश्न
-      <br>A: उत्तर
-    </p>
+  <div id="learningPanel" class="modal">
+    <div class="modal-box">
+      <h3>प्रश्न–उत्तर सिखाएँ (अधिकतम 1000)</h3>
+      <p style="font-size:14px;color:#444;">
+        फ़ॉर्मेट:
+        <br>Q: प्रश्न
+        <br>A: उत्तर
+      </p>
 
-    <textarea id="learningInput"></textarea>
+      <textarea id="learningInput"></textarea>
 
-    <div style="margin-top:14px;display:flex;gap:12px;">
-      <button id="saveLearning">सीख सहेजें</button>
-      <button id="closeLearning">बंद करें</button>
-    </div>
+      <div style="margin-top:14px;display:flex;gap:12px;">
+        <button id="saveLearning">सीख सहेजें</button>
+        <button id="closeLearning">बंद करें</button>
+      </div>
 
-    <div id="learningStatus" style="margin-top:10px;font-size:14px;"></div>
-  </div>
-
-  <!-- =========================
-       LEARNING VIEWER PANEL
-  ========================= -->
-  <div id="learningViewerPanel">
-    <h3>सीखी हुई बातें</h3>
-
-    <div id="learningList" style="margin-top:12px;"></div>
-
-    <div style="margin-top:14px;">
-      <button id="closeViewer">बंद करें</button>
+      <div id="learningStatus" style="margin-top:10px;font-size:14px;"></div>
     </div>
   </div>
 
   <!-- =========================
-       SCRIPTS (ORDER SAFE)
+       LEARNING VIEWER (MODAL)
+  ========================= -->
+  <div id="learningViewerPanel" class="modal">
+    <div class="modal-box">
+      <h3>सीखी हुई बातें</h3>
+
+      <div id="learningList" style="margin-top:12px;"></div>
+
+      <div style="margin-top:14px;">
+        <button id="closeViewer">बंद करें</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================
+       SCRIPTS (SAFE ORDER)
   ========================= -->
   <script type="module" src="./AnjaliCoreBridge.js"></script>
   <script type="module" src="./LearningUI.js"></script>
