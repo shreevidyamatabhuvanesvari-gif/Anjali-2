@@ -1,8 +1,7 @@
 /* =========================================================
    AnjaliCoreBridge.js
    🔗 Single Authority Connector
-   Voice + Memory + Learning
-   Stable Voice Discipline (FINAL VERIFIED)
+   Continuous Voice Without Refresh (FINAL STRICT FIX)
 ========================================================= */
 
 /* ---------- Imports ---------- */
@@ -21,7 +20,7 @@ const APP_IDENTITY = Object.freeze({
 const memory = new MemoryController();
 const learner = new LearningController();
 
-/* ---------- Speech APIs ---------- */
+/* ---------- Speech API ---------- */
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -32,7 +31,7 @@ if (!SpeechRecognition) {
 /* ---------- Recognition ---------- */
 const recognition = new SpeechRecognition();
 recognition.lang = "hi-IN";
-recognition.continuous = false;
+recognition.continuous = false;          // मोबाइल-safe
 recognition.interimResults = false;
 
 /* ---------- Synthesis ---------- */
@@ -42,10 +41,8 @@ const synth = window.speechSynthesis;
 let conversationActive = false;
 let isSpeaking = false;
 
-/* ---------- SPEAK (VERIFIED) ---------- */
+/* ---------- SPEAK ---------- */
 function AnjaliSpeak(text, endConversation = false) {
-
-  // सुनना तुरंत रोकें
   try { recognition.abort(); } catch (e) {}
 
   isSpeaking = true;
@@ -63,6 +60,7 @@ function AnjaliSpeak(text, endConversation = false) {
       return;
     }
 
+    // 🔁 बोलने के बाद सुनना फिर शुरू
     if (conversationActive) {
       setTimeout(() => {
         try { recognition.start(); } catch (e) {}
@@ -84,20 +82,23 @@ recognition.onresult = (event) => {
   if (isSpeaking) return;
 
   const text = event.results[0][0].transcript.trim();
-  console.log(APP_IDENTITY.loverName + ":", text);
-
   memory.remember(text);
 
   if (shouldStop(text)) {
-    AnjaliSpeak(
-      "ठीक है अनुज, मैं प्रतीक्षा करूँगी।",
-      true            // 👈 बोलने के बाद बातचीत बंद
-    );
+    AnjaliSpeak("ठीक है अनुज, मैं प्रतीक्षा करूँगी।", true);
     return;
   }
 
   const reply = learner.learn(text);
   AnjaliSpeak(reply);
+};
+
+/* ---------- 🔴 यही सबसे महत्वपूर्ण FIX ---------- */
+/* जब recognition अपने-आप बंद हो जाए → फिर चालू */
+recognition.onend = () => {
+  if (conversationActive && !isSpeaking) {
+    try { recognition.start(); } catch (e) {}
+  }
 };
 
 /* ---------- Error ---------- */
@@ -112,9 +113,7 @@ document.getElementById("startTalk").addEventListener("click", () => {
   if (conversationActive) return;
 
   conversationActive = true;
-  AnjaliSpeak(
-    `नमस्ते ${APP_IDENTITY.loverName}, मैं ${APP_IDENTITY.appName} हूँ।`
-  );
+  AnjaliSpeak(`नमस्ते ${APP_IDENTITY.loverName}, मैं ${APP_IDENTITY.appName} हूँ।`);
 });
 
 /* ---------- TEST ---------- */
