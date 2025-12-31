@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>अंजली — संवाद व शिक्षण</title>
-
   <style>
     html, body {
       margin: 0;
@@ -13,7 +12,6 @@
       font-family: sans-serif;
       background: #faf7f4;
     }
-
     /* ===== MAIN CENTER ===== */
     .center {
       min-height: 100vh;
@@ -21,14 +19,12 @@
       align-items: center;
       justify-content: center;
     }
-
     .stack {
       display: flex;
       flex-direction: column;
       gap: 18px;
       align-items: center;
     }
-
     button {
       padding: 18px 32px;
       font-size: 18px;
@@ -39,13 +35,11 @@
       color: #ffffff;
       min-width: 260px;
     }
-
     button:active {
       transform: scale(0.97);
     }
-
-    /* ===== MODAL BASE (FIXED) ===== */
-    .modal {
+    /* ===== PANEL BASE ===== */
+    .panel {
       display: none;
       position: fixed;
       inset: 0;
@@ -56,12 +50,7 @@
       align-items: center;
       justify-content: center;
     }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-box {
+    .panel-box {
       background: #ffffff;
       width: 100%;
       max-width: 1000px;
@@ -69,9 +58,7 @@
       padding: 20px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.2);
     }
-
-    /* ===== LEARNING INPUT ===== */
-    #learningInput {
+    textarea {
       width: 100%;
       min-height: 60vh;
       resize: vertical;
@@ -82,52 +69,9 @@
     }
   </style>
 </head>
-
 <body>
-
   <!-- MAIN BUTTONS -->
   <div class="center">
     <div class="stack">
-      <button id="startTalk">अंजली — संवाद प्रारंभ</button>
-      <button id="openLearning">एप को सिखाएँ</button>
-      <button id="viewLearning">सीखी हुई बातें देखें</button>
-    </div>
-  </div>
-
-  <!-- LEARNING MODAL -->
-  <div id="learningPanel" class="modal">
-    <div class="modal-box">
-      <h3>प्रश्न–उत्तर सिखाएँ (अधिकतम 1000)</h3>
-      <p style="font-size:14px;color:#444;">
-        फ़ॉर्मेट:<br>Q: प्रश्न<br>A: उत्तर
-      </p>
-
-      <textarea id="learningInput"></textarea>
-
-      <div style="margin-top:14px;display:flex;gap:12px;">
-        <button id="saveLearning">सीख सहेजें</button>
-        <button id="closeLearning">बंद करें</button>
-      </div>
-
-      <div id="learningStatus" style="margin-top:10px;font-size:14px;"></div>
-    </div>
-  </div>
-
-  <!-- LEARNING VIEWER MODAL -->
-  <div id="learningViewerPanel" class="modal">
-    <div class="modal-box">
-      <h3>सीखी हुई बातें</h3>
-      <div id="learningList" style="margin-top:12px;"></div>
-      <div style="margin-top:14px;">
-        <button id="closeViewer">बंद करें</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCRIPTS -->
-  <script type="module" src="./AnjaliCoreBridge.js"></script>
-  <script type="module" src="./LearningUI.js"></script>
-  <script type="module" src="./LearningViewerUI.js"></script>
-
-</body>
-</html>
+      <button id="startTalk">अंजली — संवाद प्रार
+        
