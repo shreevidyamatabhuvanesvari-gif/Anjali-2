@@ -1,21 +1,25 @@
 // AnjaliCoreBridge.js
-// Responsibility: Voice orchestration (FINAL FIX)
+// Responsibility: Voice + Learning orchestration (ANSWER FIX)
 
 import { VoiceController } from "./VoiceController.js";
+import { LearningController } from "./LearningController.js";
+
+const learner = new LearningController();
 
 const voice = new VoiceController((userText) => {
 
-  // अभी के लिए echo + response pipeline
-  const reply = `आपने कहा: ${userText}`;
+  // 🔥 यही लाइन पहले गायब थी
+  const reply = learner.learn(userText);
+
+  // अब वास्तविक उत्तर बोला जाएगा
   voice.speak(reply);
 });
 
-/* 🔑 USER GESTURE = CLICK */
+/* USER GESTURE */
 document.getElementById("startTalk").addEventListener("click", () => {
 
-  // 1️⃣ बोलना
-  voice.speak("नमस्ते, मैं अंजली हूँ। मैं सुन रही हूँ।");
+  voice.speak("नमस्ते, मैं अंजली हूँ। आप क्या पूछना चाहते हैं?");
 
-  // 2️⃣ 🔥 यही निर्णायक लाइन थी (अब mic खुलेगा)
+  // mic start (browser safe)
   voice.listen();
 });
