@@ -1,6 +1,6 @@
 // MemoryController.js
 // SAFE & NON-BLOCKING MEMORY LAYER
-// GUARANTEE: App response will NEVER stop
+// DOES NOT AFFECT VOICE FLOW
 
 export class MemoryController {
 
@@ -10,7 +10,6 @@ export class MemoryController {
     this._init();
   }
 
-  /* ---------- Init (Background Only) ---------- */
   _init() {
     const request = indexedDB.open("ANJALI_LONG_TERM_MEMORY", 1);
 
@@ -35,14 +34,13 @@ export class MemoryController {
     };
 
     request.onerror = () => {
-      console.warn("Memory disabled: IndexedDB unavailable");
+      // Memory failure must never stop app
       this.ready = false;
     };
   }
 
-  /* ---------- Internal Safe Write ---------- */
   _write(store, data) {
-    if (!this.ready || !this.db) return; // 🔒 NEVER BLOCK
+    if (!this.ready || !this.db) return;
 
     try {
       const tx = this.db.transaction(store, "readwrite");
@@ -50,12 +48,8 @@ export class MemoryController {
         timestamp: Date.now(),
         data
       });
-    } catch (_) {
-      // ❗ ignore completely
-    }
+    } catch (_) {}
   }
-
-  /* ---------- Public APIs (All Non-Blocking) ---------- */
 
   rememberConversation(text) {
     this._write("Conversations", text);
