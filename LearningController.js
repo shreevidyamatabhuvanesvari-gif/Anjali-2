@@ -1,65 +1,89 @@
-// LearningController.js
-// FINAL WITH STRING-GUARD
-// Responsibility:
-// - Intent + Topic + Reasoning से उत्तर चुनना
-// - हर स्थिति में VALID STRING लौटाना
-// GUARANTEE: Voice-safe | Deterministic | No AI/ML
+// VoiceController.js
+// Responsibility: Reliable Speech (listen + speak)
+// GUARANTEE: No double-start, no silent failure
 
-import { TopicRules } from "./TopicRules.js";
-import { AnswerBank } from "./AnswerBank.js";
-import { IntentResolver } from "./IntentResolver.js";
-import { ReasoningPolicy } from "./ReasoningPolicy.js";
+export class VoiceController {
 
-export class LearningController {
+  constructor(onUserSpeech) {
+    this.onUserSpeech = onUserSpeech;
 
-  learn(input) {
-    // ---------- Absolute Guards ----------
-    if (typeof input !== "string") {
-      return AnswerBank.GENERAL.CLARIFY;
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
+      return;
     }
 
-    const text = input.trim();
-    if (text === "") {
-      return AnswerBank.GENERAL.CLARIFY;
-    }
+    this.recognition = new SpeechRecognition();
+    this.recognition.lang = "hi-IN";
+    this.recognition.continuous = false;
+    this.recognition.interimResults = false;
 
-    let result = null;
+    this.synth = window.speechSynthesis;
 
-    // ---------- 1️⃣ समझ (Intent) ----------
-    const intent = IntentResolver.resolve(text);
+    this.isListening = false;
+    this.isSpeaking = false;
 
-    // ---------- 2️⃣ विषय (Topic) ----------
-    const topicAnswer = TopicRules.getTopicAnswer(text);
-    if (typeof topicAnswer === "string") {
-      result = topicAnswer;
-    }
-
-    // ---------- 3️⃣ सोच (Reasoning) ----------
-    if (result === null) {
-      const hasRecentEmotion = (intent === "EMOTIONAL");
-      const needsClarity = this.isQuestion(text);
-
-      result = ReasoningPolicy.decide({
-        intent,
-        hasRecentEmotion,
-        needsClarity
-      });
-    }
-
-    // ---------- 🔒 FINAL STRING-GUARD ----------
-    // ❗ यही वह निर्णायक लाइन है जो आवाज़ बचाती है
-    if (typeof result !== "string" || result.trim() === "") {
-      return AnswerBank.GENERAL.CLARIFY;
-    }
-
-    return result;
+    this._bindEvents();
   }
 
-  /* ---------- Helper ---------- */
-  isQuestion(text) {
-    return (
-      text.endsWith("?") ||
-      ["क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन"].some(w => text.includes(w))
-    );
+  /* ---------- Internal Wiring ---------- */
+  _bindEvents() {
+
+    this.recognition.onresult = (event) => {
+      if (!this.isListening) return;
+
+      this.isListening = false;
+      const text = event.results[0][0].transcript.trim();
+
+      this.onUserSpeech(text);
+    };
+
+    this.recognition.onerror = () => {
+      this.isListening = false;
+    };
+
+    // ❌ यहाँ कोई auto-restart नहीं
+    this.recognition.onend = () => {
+      this.isListening = false;
+    };
+  }
+
+  /* ---------- Speak ---------- */
+  speak(text) {
+    if (typeof text !== "string" || text.trim() === "") {
+      return; // 🔒 कभी खाली न बोले
+    }
+
+    if (this.synth.speaking) {
+      this.synth.cancel();
+    }
+
+    this.isSpeaking = true;
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "hi-IN";
+    u.rate = 0.95;
+    u.pitch = 1.05;
+
+    u.onend = () => {
+      this.isSpeaking = false;
+      this.listen();   // ✅ केवल यहीं से listen
+    };
+
+    this.synth.speak(u);
+  }
+
+  /* ---------- Listen ---------- */
+  listen() {
+    if (this.isListening || this.isSpeaking) return;
+
+    try {
+      this.isListening = true;
+      this.recognition.start();
+    } catch (_) {
+      this.isListening = false;
+    }
   }
 }
