@@ -1,78 +1,60 @@
 // LearningController.js
-// Responsibility: प्रश्न के अनुसार सटीक उत्तर देना
-// Rule-based, no AI/ML, no guessing
+// Responsibility:
+// - उपयोगकर्ता के कथन से सुरक्षित उत्तर चुनना
+// - TopicRules + IntentResolver + ReasoningPolicy को संयोजित करना
+// GUARANTEE:
+// - हर स्थिति में केवल string return
+// - VoiceController के साथ पूर्ण संगत (voice-safe)
+
+import { TopicRules } from "./TopicRules.js";
+import { IntentResolver } from "./IntentResolver.js";
+import { ReasoningPolicy } from "./ReasoningPolicy.js";
+import { AnswerBank } from "./AnswerBank.js";
 
 export class LearningController {
 
   learn(input) {
-    if (typeof input !== "string" || input.trim() === "") {
-      return "कृपया अपना प्रश्न स्पष्ट रूप से पूछिए।";
+
+    /* ---------- HARD INPUT GUARD ---------- */
+    if (typeof input !== "string") {
+      return AnswerBank.GENERAL.CLARIFY;
     }
 
     const text = input.trim();
-
-    // 1️⃣ प्रश्न पहचान
-    if (this.isQuestion(text)) {
-      return this.answerQuestion(text);
+    if (text === "") {
+      return AnswerBank.GENERAL.CLARIFY;
     }
 
-    // 2️⃣ सामान्य कथन
-    return "मैं सुन रही हूँ। यदि कोई प्रश्न है तो स्पष्ट पूछिए।";
-  }
-
-  /* =====================================================
-     QUESTION HANDLER
-  ===================================================== */
-
-  answerQuestion(text) {
-
-    // --- पहचान / नाम ---
-    if (this.includesAny(text, ["तुम", "आप", "अंजली"]) &&
-        this.includesAny(text, ["कौन", "नाम"])) {
-      return "मेरा नाम अंजली है।";
+    /* =====================================================
+       1️⃣ विषय-विशेष उत्तर (Direct Topic Match)
+    ===================================================== */
+    const topicAnswer = TopicRules.getTopicAnswer(text);
+    if (typeof topicAnswer === "string") {
+      return topicAnswer;
     }
 
-    // --- एप से संबंधित ---
-    if (this.includesAny(text, ["एप", "ऐप", "प्रोग्राम"])) {
-      return "यह एक संवाद करने वाला एप है, जो आपकी बात सुनकर उत्तर देता है।";
+    /* =====================================================
+       2️⃣ Intent पहचान
+    ===================================================== */
+    const intent = IntentResolver.resolve(text);
+
+    /* =====================================================
+       3️⃣ Reasoning Policy (सुरक्षित निर्णय)
+    ===================================================== */
+    const decidedAnswer = ReasoningPolicy.decide({
+      intent: intent,
+      hasRecentEmotion: intent === "EMOTIONAL",
+      needsClarity: intent === "INFORMATION"
+    });
+
+    /* =====================================================
+       4️⃣ FINAL STRING GUARD (अत्यंत महत्वपूर्ण)
+    ===================================================== */
+    if (typeof decidedAnswer === "string") {
+      return decidedAnswer;
     }
 
-    // --- क्यों ---
-    if (text.includes("क्यों")) {
-      return "क्यों का उत्तर कारण पर निर्भर करता है। कृपया जिस विषय पर पूछ रहे हैं, उसे स्पष्ट करें।";
-    }
-
-    // --- कैसे ---
-    if (text.includes("कैसे")) {
-      return "कैसे का उत्तर प्रक्रिया से जुड़ा होता है। आप किस प्रक्रिया के बारे में जानना चाहते हैं?";
-    }
-
-    // --- क्या ---
-    if (text.includes("क्या")) {
-      return "आप जो पूछ रहे हैं, उसका उत्तर विषय पर निर्भर है। कृपया थोड़ा और स्पष्ट करें।";
-    }
-
-    // --- कब / कहाँ / कौन ---
-    if (this.includesAny(text, ["कब", "कहाँ", "कौन"])) {
-      return "इस प्रश्न का उत्तर देने के लिए संदर्भ आवश्यक है। कृपया पूरा प्रश्न बताइए।";
-    }
-
-    // --- fallback (बहुत कम आएगा) ---
-    return "आपका प्रश्न समझ में आ रहा है, लेकिन विषय स्पष्ट नहीं है।";
-  }
-
-  /* =====================================================
-     HELPERS
-  ===================================================== */
-
-  isQuestion(text) {
-    return (
-      text.endsWith("?") ||
-      this.includesAny(text, ["क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन"])
-    );
-  }
-
-  includesAny(text, words) {
-    return words.some(word => text.includes(word));
+    /* ---------- ABSOLUTE FALLBACK ---------- */
+    return AnswerBank.GENERAL.UNKNOWN;
   }
 }
