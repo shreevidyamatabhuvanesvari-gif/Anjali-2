@@ -1,47 +1,67 @@
 // LearningControllerBridge.js
 // Responsibility:
-// - LearningController और ReasoningEngine के बीच सेतु
-// - पहले सीखे गए ज्ञान को ReasoningEngine को देना
-// - Reasoned उत्तर को LearningController तक वापस पहुँचाना
-// Rule-based | Deterministic | Offline | Voice-safe | NO AI/ML
+// - Voice के लिए एकमात्र सुरक्षित entry point
+// - Learning (सीखा हुआ) + Reasoning (सोच) को सही क्रम में जोड़ना
+// GUARANTEE:
+// - हमेशा string return
+// - Voice कभी block नहीं होगी
+// FINAL | STABLE | VOICE-SAFE
 
+import { LearningController } from "./LearningController.js";
+import { TopicRules } from "./TopicRules.js";
+import { IntentResolver } from "./IntentResolver.js";
 import { ReasoningEngine } from "./ReasoningEngine.js";
 import { AnswerBank } from "./AnswerBank.js";
 
 export class LearningControllerBridge {
 
   constructor() {
-    this.reasoner = new ReasoningEngine();
+    this.learning = new LearningController();
   }
 
-  /* =====================================================
-     MAIN BRIDGE API
-  ===================================================== */
-  getReasonedAnswer(params) {
+  /**
+   * 🔑 यही एकमात्र method है जिसे Voice बुलाएगी
+   * @param {string} userText
+   * @returns {string} (GUARANTEED)
+   */
+  process(userText) {
 
-    if (!params || typeof params !== "object") {
-      return AnswerBank.GENERAL.UNKNOWN;
+    /* ===============================
+       HARD STRING GUARD
+    =============================== */
+    if (typeof userText !== "string" || userText.trim() === "") {
+      return AnswerBank.GENERAL.LISTENING;
     }
 
-    const {
-      question,
-      intent,
-      learnedAnswer,
-      topicAnswer
-    } = params;
+    const question = userText.trim();
 
-    // 1️⃣ यदि सीखा हुआ उत्तर है → सर्वोच्च प्राथमिकता
-    if (typeof learnedAnswer === "string" && learnedAnswer.trim() !== "") {
+    /* ===============================
+       1️⃣ सीखा हुआ उत्तर (FAST PATH)
+       ⚠️ async storage पर निर्भर नहीं
+    =============================== */
+    const learnedAnswer = this.learning.getCachedAnswer?.(question);
+    if (typeof learnedAnswer === "string") {
       return learnedAnswer;
     }
 
-    // 2️⃣ यदि TopicRules से उत्तर मिला है
-    if (typeof topicAnswer === "string" && topicAnswer.trim() !== "") {
+    /* ===============================
+       2️⃣ विषय आधारित नियम
+    =============================== */
+    const topicAnswer = TopicRules.getTopicAnswer(question);
+
+    if (typeof topicAnswer === "string") {
       return topicAnswer;
     }
 
-    // 3️⃣ ReasoningEngine से सोचकर उत्तर
-    const reasoned = this.reasoner.think({
+    /* ===============================
+       3️⃣ Intent पहचान
+    =============================== */
+    const intent = IntentResolver.resolve(question);
+
+    /* ===============================
+       4️⃣ FINAL सोच (ReasoningEngine)
+    =============================== */
+    const reasoned = ReasoningEngine.think({
       question,
       intent
     });
@@ -50,8 +70,9 @@ export class LearningControllerBridge {
       return reasoned;
     }
 
-    // 4️⃣ अंतिम fallback (कभी खाली नहीं)
+    /* ===============================
+       5️⃣ अंतिम fallback (VOICE SAFE)
+    =============================== */
     return AnswerBank.GENERAL.UNKNOWN;
   }
-
 }
