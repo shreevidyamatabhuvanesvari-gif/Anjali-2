@@ -1,36 +1,56 @@
 // VoiceController.js
-// Responsibility: बोलना + सुनना (न्यूनतम, विश्वसनीय)
+// Responsibility: Reliable Speech (speak + listen)
+// GUARANTEE: Mic starts ONLY from user gesture (browser safe)
 
 export class VoiceController {
 
   constructor(onUserSpeech) {
     this.onUserSpeech = onUserSpeech;
 
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      alert("Speech Recognition सपोर्ट नहीं है");
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
       return;
     }
 
-    this.recognition = new SR();
+    this.recognition = new SpeechRecognition();
     this.recognition.lang = "hi-IN";
     this.recognition.continuous = false;
     this.recognition.interimResults = false;
 
     this.synth = window.speechSynthesis;
-    this.listening = false;
 
-    this.recognition.onresult = (e) => {
-      this.listening = false;
-      const text = e.results[0][0].transcript.trim();
-      if (this.onUserSpeech) this.onUserSpeech(text);
+    this.isListening = false;
+    this.isSpeaking  = false;
+
+    this._bindEvents();
+  }
+
+  /* ---------- Internal Wiring ---------- */
+  _bindEvents() {
+
+    this.recognition.onresult = (event) => {
+      if (!this.isListening) return;
+
+      this.isListening = false;
+      const text = event.results[0][0].transcript.trim();
+
+      this.onUserSpeech(text);
     };
 
     this.recognition.onerror = () => {
-      this.listening = false;
+      this.isListening = false;
+    };
+
+    // ❗ auto-restart नहीं (browser policy safe)
+    this.recognition.onend = () => {
+      this.isListening = false;
     };
   }
 
+  /* ---------- SPEAK ---------- */
   speak(text) {
     if (typeof text !== "string" || text.trim() === "") return;
 
@@ -38,24 +58,30 @@ export class VoiceController {
       this.synth.cancel();
     }
 
+    this.isSpeaking = true;
+
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "hi-IN";
+    u.rate = 0.95;
+    u.pitch = 1.05;
 
     u.onend = () => {
-      this.listen();
+      this.isSpeaking = false;
+      // ❌ यहाँ listen() नहीं बुलाया जाएगा
     };
 
     this.synth.speak(u);
   }
 
+  /* ---------- LISTEN (USER-GESTURE ONLY) ---------- */
   listen() {
-    if (this.listening) return;
+    if (this.isListening || this.isSpeaking) return;
 
     try {
-      this.listening = true;
+      this.isListening = true;
       this.recognition.start();
     } catch (_) {
-      this.listening = false;
+      this.isListening = false;
     }
   }
 }
