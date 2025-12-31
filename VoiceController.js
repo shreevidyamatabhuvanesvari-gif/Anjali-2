@@ -1,87 +1,75 @@
 // VoiceController.js
-// Responsibility: Reliable Speech (speak + listen)
-// GUARANTEE: Mic starts ONLY from user gesture (browser safe)
+// FINAL, VOICE-SAFE, BROWSER-CORRECT
 
 export class VoiceController {
 
   constructor(onUserSpeech) {
     this.onUserSpeech = onUserSpeech;
 
-    const SpeechRecognition =
+    const SR =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
+    if (!SR) {
       alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
       return;
     }
 
-    this.recognition = new SpeechRecognition();
+    this.recognition = new SR();
     this.recognition.lang = "hi-IN";
     this.recognition.continuous = false;
     this.recognition.interimResults = false;
 
     this.synth = window.speechSynthesis;
 
-    this.isListening = false;
-    this.isSpeaking  = false;
+    this.listening = false;
 
-    this._bindEvents();
+    this._bind();
   }
 
-  /* ---------- Internal Wiring ---------- */
-  _bindEvents() {
-
-    this.recognition.onresult = (event) => {
-      if (!this.isListening) return;
-
-      this.isListening = false;
-      const text = event.results[0][0].transcript.trim();
-
+  _bind() {
+    this.recognition.onresult = (e) => {
+      this.listening = false;
+      const text = e.results[0][0].transcript.trim();
       this.onUserSpeech(text);
     };
 
     this.recognition.onerror = () => {
-      this.isListening = false;
+      this.listening = false;
     };
 
-    // ❗ auto-restart नहीं (browser policy safe)
     this.recognition.onend = () => {
-      this.isListening = false;
+      this.listening = false;
     };
   }
 
-  /* ---------- SPEAK ---------- */
   speak(text) {
     if (typeof text !== "string" || text.trim() === "") return;
 
-    if (this.synth.speaking) {
-      this.synth.cancel();
-    }
-
-    this.isSpeaking = true;
+    this.synth.cancel();
 
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "hi-IN";
     u.rate = 0.95;
     u.pitch = 1.05;
 
+    // 🔑 यही निर्णायक लाइन है
     u.onend = () => {
-      this.isSpeaking = false;
-      // ❌ यहाँ listen() नहीं बुलाया जाएगा
+      this._startListeningSafely();
     };
 
     this.synth.speak(u);
   }
 
-  /* ---------- LISTEN (USER-GESTURE ONLY) ---------- */
-  listen() {
-    if (this.isListening || this.isSpeaking) return;
+  _startListeningSafely() {
+    if (this.listening) return;
 
     try {
-      this.isListening = true;
+      this.listening = true;
       this.recognition.start();
-    } catch (_) {
-      this.isListening = false;
+    } catch {
+      this.listening = false;
     }
   }
+
+  // 🔒 बाहरी listen() की ज़रूरत नहीं
 }
