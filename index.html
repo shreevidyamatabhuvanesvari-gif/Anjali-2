@@ -14,6 +14,7 @@
       background: #faf7f4;
     }
 
+    /* केंद्र में बटन */
     .center {
       height: 100%;
       display: flex;
@@ -41,7 +42,9 @@
       transform: scale(0.97);
     }
 
-    /* Learning Panel */
+    /* =========================
+       LEARNING PANEL (Teach)
+    ========================= */
     #learningPanel {
       display: none;
       padding: 20px;
@@ -52,30 +55,45 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
-    /* ✅ LARGE LEARNING BOX — 1000 Q-A READY */
     #learningInput {
       width: 100%;
-      min-height: 60vh;          /* 🔑 मुख्य सुधार */
+      min-height: 60vh;
       resize: vertical;
       padding: 14px;
       font-size: 15px;
       line-height: 1.6;
       box-sizing: border-box;
     }
+
+    /* =========================
+       VIEWER PANEL (See Learned)
+    ========================= */
+    #learningViewerPanel {
+      display: none;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 20px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 
 <body>
 
-  <!-- CENTERED BUTTONS -->
+  <!-- CENTERED MAIN BUTTONS -->
   <div class="center">
     <div class="stack">
       <button id="startTalk">अंजली — संवाद प्रारंभ</button>
       <button id="openLearning">एप को सिखाएँ</button>
+      <button id="viewLearning">सीखी हुई बातें देखें</button>
     </div>
   </div>
 
-  <!-- LEARNING PANEL -->
+  <!-- =========================
+       LEARNING PANEL (Teach)
+  ========================= -->
   <div id="learningPanel">
     <h3>प्रश्न–उत्तर सिखाएँ (अधिकतम 1000)</h3>
     <p style="font-size:14px;color:#444;">
@@ -84,7 +102,6 @@
       <br>A: उत्तर
     </p>
 
-    <!-- 🔒 अब यह वास्तव में 1000 Q-A के लिए सक्षम है -->
     <textarea id="learningInput"></textarea>
 
     <div style="margin-top:14px;display:flex;gap:12px;">
@@ -95,9 +112,25 @@
     <div id="learningStatus" style="margin-top:10px;font-size:14px;"></div>
   </div>
 
-  <!-- APP ENTRY POINT -->
+  <!-- =========================
+       LEARNING VIEWER PANEL
+  ========================= -->
+  <div id="learningViewerPanel">
+    <h3>सीखी हुई बातें</h3>
+
+    <div id="learningList" style="margin-top:12px;"></div>
+
+    <div style="margin-top:14px;">
+      <button id="closeViewer">बंद करें</button>
+    </div>
+  </div>
+
+  <!-- =========================
+       SCRIPTS (ORDER SAFE)
+  ========================= -->
   <script type="module" src="./AnjaliCoreBridge.js"></script>
   <script type="module" src="./LearningUI.js"></script>
+  <script type="module" src="./LearningViewerUI.js"></script>
 
 </body>
 </html>
