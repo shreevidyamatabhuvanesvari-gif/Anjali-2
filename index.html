@@ -1,57 +1,40 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- Learning Mode Toggle Button -->
+<div class="center" style="flex-direction: column; gap: 16px;">
+  <button id="startTalk">अंजली — संवाद प्रारंभ</button>
+  <button id="openLearning">एप को सिखाएँ</button>
+</div>
 
-  <title>अंजली — संवाद प्रारंभ</title>
+<!-- Learning Panel (Hidden by default) -->
+<div id="learningPanel" style="
+  display:none;
+  padding:16px;
+  max-width:900px;
+  margin:20px auto;
+  background:#ffffff;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+">
 
-  <!-- न्यूनतम, शुद्ध CSS -->
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: sans-serif;
-      background: #faf7f4;
-    }
+  <h3>प्रश्न–उत्तर सिखाएँ (अधिकतम 1000)</h3>
 
-    /* केंद्र में बटन */
-    .center {
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+  <p style="font-size:14px;color:#444;">
+    फ़ॉर्मेट (अनिवार्य):
+    <br>Q: प्रश्न
+    <br>A: उत्तर
+  </p>
 
-    button {
-      padding: 18px 32px;
-      font-size: 18px;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
-      background: #6b2d2d;
-      color: #ffffff;
-    }
+  <textarea id="learningInput" rows="18" style="
+    width:100%;
+    padding:12px;
+    font-size:14px;
+    box-sizing:border-box;
+  " placeholder="Q: सही और गलत क्या है?
+A: सही वह है जो हानि न करे, गलत वह है जो अन्याय करे।"></textarea>
 
-    button:active {
-      transform: scale(0.98);
-    }
-  </style>
-</head>
-
-<body>
-
-  <!-- केवल एक ही बटन -->
-  <div class="center">
-    <button id="startTalk">
-      अंजली — संवाद प्रारंभ
-    </button>
+  <div style="margin-top:12px; display:flex; gap:12px;">
+    <button id="saveLearning">सीख सहेजें</button>
+    <button id="closeLearning">बंद करें</button>
   </div>
 
-  <!-- केवल एक ही script, module के रूप में -->
-  <!-- यही पूरा एप शुरू करता है -->
-  <script type="module" src="./AnjaliCoreBridge.js"></script>
-
-</body>
-</html>
+  <div id="learningStatus" style="margin-top:10px;font-size:14px;"></div>
+</div>
