@@ -4,14 +4,48 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>अंजली</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: sans-serif;
+      background: #fff;
+    }
+
+    .center-box {
+      text-align: center;
+    }
+
+    #startTalk {
+      margin-top: 20px;
+      padding: 14px 28px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: none;
+      background-color: #6a1b9a;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    #startTalk:active {
+      transform: scale(0.97);
+    }
+  </style>
 </head>
+
 <body>
 
-  <h2>🌸 अंजली — संवाद प्रारंभ</h2>
-  <button id="startTalk">बात शुरू करें</button>
+  <div class="center-box">
+    <h2>🌸 अंजली — संवाद प्रारंभ</h2>
+    <button id="startTalk">बात शुरू करें</button>
+  </div>
 
   <!-- 🔗 Single Authority Connector -->
-  <script src="AnjaliCoreBridge.js"></script>
+  <script type="module" src="AnjaliCoreBridge.js"></script>
 
 </body>
 </html>
