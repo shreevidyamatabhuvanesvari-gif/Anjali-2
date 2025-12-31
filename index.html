@@ -44,12 +44,23 @@
     /* Learning Panel */
     #learningPanel {
       display: none;
-      padding: 16px;
-      max-width: 900px;
+      padding: 20px;
+      max-width: 1000px;
       margin: 20px auto;
       background: #ffffff;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    /* ✅ LARGE LEARNING BOX — 1000 Q-A READY */
+    #learningInput {
+      width: 100%;
+      min-height: 60vh;          /* 🔑 मुख्य सुधार */
+      resize: vertical;
+      padding: 14px;
+      font-size: 15px;
+      line-height: 1.6;
+      box-sizing: border-box;
     }
   </style>
 </head>
@@ -73,9 +84,10 @@
       <br>A: उत्तर
     </p>
 
-    <textarea id="learningInput" rows="16" style="width:100%;padding:12px;"></textarea>
+    <!-- 🔒 अब यह वास्तव में 1000 Q-A के लिए सक्षम है -->
+    <textarea id="learningInput"></textarea>
 
-    <div style="margin-top:12px;display:flex;gap:12px;">
+    <div style="margin-top:14px;display:flex;gap:12px;">
       <button id="saveLearning">सीख सहेजें</button>
       <button id="closeLearning">बंद करें</button>
     </div>
