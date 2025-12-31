@@ -45,17 +45,20 @@
     }
 
     /* =========================
-       MODAL BASE (COMMON)
+       MODAL BASE (FIXED)
     ========================= */
     .modal {
-      display: none;
+      display: none;              /* 🔑 default truly hidden */
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.45);
       z-index: 999;
       padding: 20px;
       overflow-y: auto;
+    }
 
+    /* modal visible state */
+    .modal.show {
       display: flex;
       align-items: center;
       justify-content: center;
