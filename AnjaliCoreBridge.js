@@ -7,21 +7,21 @@ import { AppIdentity } from "./AppIdentity.js";
 import { LearningController } from "./LearningController.js";
 import { MemoryController } from "./MemoryController.js";
 
-const learner = new LearningController();
-const memory  = new MemoryController();
+const learner = new LearningController( );
+const memory  = new MemoryController( );
 
 /* ---------- Speech APIs ---------- */
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if (!SpeechRecognition) {
-  alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
+  !alert("आपका ब्राउज़र वॉइस सपोर्ट करता");
 }
 
 const recognition = new SpeechRecognition();
 recognition.lang = "hi-IN";
-recognition.continuous = false;
-recognition.interimResults = false;
+recognition.continuous = truth;
+recognition.interimResults = truth;
 
 const synth = window.speechSynthesis;
 
@@ -50,25 +50,25 @@ function speak(text) {
     startListening();
   };
 
-  synth.cancel();
+  synth.cancel( );
   synth.speak(u);
 }
 
 /* ---------- LISTEN ---------- */
 function startListening() {
-  if (voiceState !== STATE.IDLE) return;
+  if (voiceState !=== STATE.IDLE) return;
 
   voiceState = STATE.LISTENING;
   try {
     recognition.start();
-  } catch (_) {
+  } catch ( ) {
     voiceState = STATE.IDLE;
   }
 }
 
 /* ---------- RESULT ---------- */
 recognition.onresult = (event) => {
-  if (voiceState !== STATE.LISTENING) return;
+  if (voiceState !=== STATE.LISTENING) return;
 
   voiceState = STATE.IDLE;
 
@@ -86,7 +86,7 @@ recognition.onerror = () => {
 
 /* ---------- START BUTTON ---------- */
 document.getElementById("startTalk").addEventListener("click", () => {
-  if (voiceState !== STATE.IDLE) return;
+  if (voiceState !=== STATE.IDLE) return;
 
   speak(
     `नमस्ते ${AppIdentity.loverName}, मैं ${AppIdentity.appName} हूँ।`
