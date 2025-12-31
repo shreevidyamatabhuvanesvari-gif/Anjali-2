@@ -1,7 +1,8 @@
 // LearningController.js
-// जिम्मेदारी: प्रश्न का उत्तर देना
-// अब PersonalityEngine से गुणों का संदर्भ लेकर उत्तर को संतुलित करता है
-// Rule-based | Deterministic | No AI/ML | No guessing
+// Responsibility: प्रश्न के अनुसार सटीक उत्तर देना
+// PersonalityEngine integrated safely
+// Rule-based | Deterministic | No AI/ML
+// GUARANTEE: हर स्थिति में string return (Voice SAFE)
 
 import { TopicRules } from "./TopicRules.js";
 import { PersonalityEngine } from "./personality/PersonalityEngine.js";
@@ -15,54 +16,84 @@ export class LearningController {
 
     const text = input.trim();
 
-    // 1️⃣ पहले विषय-विशेष उत्तर खोजें
+    // 1️⃣ विषय-विशेष उत्तर (यदि मिला)
     const topicAnswer = TopicRules.getTopicAnswer(text);
     if (topicAnswer !== null) {
-      return this.applyPersonalityTone(topicAnswer);
+      return this.applyPersonality(topicAnswer, text);
     }
 
-    // 2️⃣ प्रश्न-प्रकार आधारित उत्तर
+    // 2️⃣ प्रश्न-प्रकार
     if (this.isQuestion(text)) {
-      return this.applyPersonalityTone(
-        "आपका प्रश्न विषय के बिना स्पष्ट नहीं है। कृपया थोड़ा और स्पष्ट करें।"
+      return this.applyPersonality(
+        "आपका प्रश्न विषय के बिना स्पष्ट नहीं है। कृपया थोड़ा और स्पष्ट करें।",
+        text
       );
     }
 
     // 3️⃣ सामान्य कथन
-    return this.applyPersonalityTone(
-      "मैं आपकी बात ध्यान से सुन रही हूँ। यदि कोई प्रश्न हो तो स्पष्ट पूछिए।"
+    return this.applyPersonality(
+      "मैं सुन रही हूँ। यदि कोई प्रश्न है तो स्पष्ट पूछिए।",
+      text
     );
   }
 
   /* =====================================================
-     PERSONALITY APPLICATION
+     PERSONALITY APPLICATION (ALL 6 TRAITS)
   ===================================================== */
 
-  applyPersonalityTone(answer) {
-    const { EmotionalTraits, MentalTraits, LoveTraits } = PersonalityEngine;
+  applyPersonality(answer, originalText) {
+    const {
+      EmotionalTraits,
+      MentalTraits,
+      LoveTraits,
+      EthicalTraits,
+      SpiritualTraits,
+      PracticalTraits
+    } = PersonalityEngine;
 
-    let refinedAnswer = answer;
+    let finalAnswer = answer;
 
-    // भावनात्मक सौम्यता
-    if (EmotionalTraits.empathy && EmotionalTraits.sensitivity) {
-      refinedAnswer = refinedAnswer;
+    /* ---------- Emotional + Love + Mental (हमेशा सुरक्षित) ---------- */
+    // (भाषा को सौम्य, सम्मानजनक और स्पष्ट बनाए रखना)
+    if (
+      EmotionalTraits.empathy &&
+      LoveTraits.respect &&
+      MentalTraits.clearCommunication
+    ) {
+      finalAnswer = finalAnswer;
     }
 
-    // प्रेम-संबंधी आदर
-    if (LoveTraits.respect) {
-      refinedAnswer = refinedAnswer;
+    /* ---------- Ethical Traits (केवल नैतिक प्रश्नों पर) ---------- */
+    if (
+      EthicalTraits &&
+      this.includesAny(originalText, ["सही", "गलत", "नैतिक", "मर्यादा", "ईमान"])
+    ) {
+      finalAnswer =
+        finalAnswer +
+        " निर्णय लेते समय ईमानदारी और मर्यादा का ध्यान रखना आवश्यक होता है।";
     }
 
-    // मानसिक स्पष्टता
-    if (MentalTraits.clearCommunication) {
-      refinedAnswer = refinedAnswer;
+    /* ---------- Spiritual Traits (केवल गूढ़ प्रश्नों पर) ---------- */
+    if (
+      SpiritualTraits &&
+      this.includesAny(originalText, ["आत्मा", "अर्थ", "जीवन", "कर्म", "आध्यात्म"])
+    ) {
+      finalAnswer =
+        finalAnswer +
+        " जीवन की गहराई समझ और आत्मिक संतुलन से प्रकट होती है।";
     }
 
-    // ⚠️ अभी भाषा नहीं बदली जा रही,
-    // केवल यह सुनिश्चित किया जा रहा है कि उत्तर
-    // सौम्य, स्पष्ट और सम्मानजनक रहे
+    /* ---------- Practical Traits (केवल व्यवहारिक प्रश्नों पर) ---------- */
+    if (
+      PracticalTraits &&
+      this.includesAny(originalText, ["उपाय", "समाधान", "कैसे करूँ", "व्यवहार"])
+    ) {
+      finalAnswer =
+        finalAnswer +
+        " व्यवहारिक रूप से वही करें जो परिस्थिति में संभव और संतुलित हो।";
+    }
 
-    return refinedAnswer;
+    return finalAnswer;
   }
 
   /* =====================================================
