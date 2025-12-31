@@ -1,33 +1,89 @@
 // VoiceController.js
+// Responsibility: Speech only (listen + speak)
+
 export class VoiceController {
-  constructor(onStop) {
-    this.onStop = onStop;
-    this.recognition =
-      new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+
+  constructor(onUserSpeech) {
+    this.onUserSpeech = onUserSpeech;
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
+      return;
+    }
+
+    this.recognition = new SpeechRecognition();
     this.recognition.lang = "hi-IN";
-    this.recognition.continuous = true;
+    this.recognition.continuous = false;
+    this.recognition.interimResults = false;
+
+    this.synth = window.speechSynthesis;
+
+    this.STATE = {
+      IDLE: "IDLE",
+      LISTENING: "LISTENING",
+      SPEAKING: "SPEAKING"
+    };
+
+    this.state = this.STATE.IDLE;
+
+    this._bindEvents();
   }
 
-  listen(callback) {
-    this.recognition.onresult = (e) => {
-      const text = e.results[e.results.length - 1][0].transcript;
-      if (text.includes("अब बात कुछ समय बाद करते हैं")) {
-        this.stop();
-        this.onStop();
-      } else {
-        callback(text);
+  /* ---------- Internal Wiring ---------- */
+  _bindEvents() {
+    this.recognition.onresult = (event) => {
+      if (this.state !== this.STATE.LISTENING) return;
+
+      this.state = this.STATE.IDLE;
+      const text = event.results[0][0].transcript.trim();
+
+      this.onUserSpeech(text);
+    };
+
+    this.recognition.onerror = () => {
+      this.state = this.STATE.IDLE;
+    };
+
+    this.recognition.onend = () => {
+      if (this.state === this.STATE.IDLE && !this.synth.speaking) {
+        this.listen();
       }
     };
-    this.recognition.start();
   }
+
+  /* ---------- Public APIs ---------- */
 
   speak(text) {
+    if (this.synth.speaking) {
+      this.synth.cancel();
+    }
+
+    this.state = this.STATE.SPEAKING;
+
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "hi-IN";
-    speechSynthesis.speak(u);
+    u.rate = 0.95;
+    u.pitch = 1.05;
+
+    u.onend = () => {
+      this.state = this.STATE.IDLE;
+      this.listen();
+    };
+
+    this.synth.speak(u);
   }
 
-  stop() {
-    this.recognition.stop();
+  listen() {
+    if (this.state !== this.STATE.IDLE) return;
+
+    try {
+      this.state = this.STATE.LISTENING;
+      this.recognition.start();
+    } catch (_) {
+      this.state = this.STATE.IDLE;
+    }
   }
 }
