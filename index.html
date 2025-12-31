@@ -48,7 +48,7 @@
        MODAL BASE (FIXED)
     ========================= */
     .modal {
-      display: none;              /* 🔑 default truly hidden */
+      display: none;              /* 🔑 default hidden */
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.45);
@@ -57,7 +57,7 @@
       overflow-y: auto;
     }
 
-    /* modal visible state */
+    /* 🔑 यही सबसे ज़रूरी FIX */
     .modal.show {
       display: flex;
       align-items: center;
@@ -108,9 +108,9 @@
     <div class="modal-box">
       <h3>प्रश्न–उत्तर सिखाएँ (अधिकतम 1000)</h3>
       <p style="font-size:14px;color:#444;">
-        फ़ॉर्मेट:
-        <br>Q: प्रश्न
-        <br>A: उत्तर
+        फ़ॉर्मेट:<br>
+        Q: प्रश्न<br>
+        A: उत्तर
       </p>
 
       <textarea id="learningInput"></textarea>
@@ -125,7 +125,7 @@
   </div>
 
   <!-- =========================
-       LEARNING VIEWER (MODAL)
+       LEARNING VIEWER PANEL
   ========================= -->
   <div id="learningViewerPanel" class="modal">
     <div class="modal-box">
