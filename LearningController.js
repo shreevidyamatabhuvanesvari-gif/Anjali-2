@@ -1,98 +1,81 @@
 // LearningController.js
-// Responsibility:
-// - User के प्रश्न का सुरक्षित, निश्चित उत्तर देना
-// - Learned Q/A → TopicRules → ReasoningEngine (via Bridge)
-// - Voice pipeline को कभी break न होने देना
-// Rule-based | Deterministic | Offline | Voice-safe | FINAL
-
-import { LearningStorage } from "./LearningStorage.js";
-import { TopicRules } from "./TopicRules.js";
-import { IntentResolver } from "./IntentResolver.js";
-import { AnswerBank } from "./AnswerBank.js";
-import { LearningControllerBridge } from "./LearningControllerBridge.js";
+// VOICE-SAFE KERNEL
+// GUARANTEE:
+// - learn() हमेशा string लौटाएगा
+// - कोई async / storage / reasoning नहीं
+// - आवाज़ कभी बंद नहीं होगी
 
 export class LearningController {
 
-  constructor() {
-    this.storage = new LearningStorage();
-    this.bridge  = new LearningControllerBridge();
-
-    // 🔒 runtime cache (IndexedDB async समस्या का समाधान)
-    this.runtimeLearned = new Map();
-  }
-
-  /* =====================================================
-     MAIN ENTRY POINT
-  ===================================================== */
   learn(input) {
 
-    /* ---------- HARD STRING GUARD ---------- */
-    if (typeof input !== "string" || input.trim() === "") {
-      return AnswerBank.GENERAL.CLARIFY;
+    // 🔒 Absolute String Guard
+    if (typeof input !== "string") {
+      return "मैं आपकी बात सुन नहीं पाई। कृपया फिर से कहिए।";
     }
 
-    const question = input.trim();
+    const text = input.trim();
 
-    /* =====================================================
-       1️⃣ Learned Q/A (Runtime Cache – Instant)
-    ===================================================== */
-    if (this.runtimeLearned.has(question)) {
-      return this.runtimeLearned.get(question);
+    if (text === "") {
+      return "आप कुछ कहना चाह रहे हैं। कृपया स्पष्ट बोलिए।";
     }
 
-    /* =====================================================
-       2️⃣ Learned Q/A (IndexedDB – Async Safe Load)
-    ===================================================== */
-    try {
-      this.storage.findAnswer(question, (answer) => {
-        if (typeof answer === "string" && answer.trim() !== "") {
-          this.runtimeLearned.set(question, answer);
-        }
-      });
-    } catch (_) {
-      // कोई असर नहीं – fallback रहेगा
+    // =========================
+    // BASIC QUESTION DETECTION
+    // =========================
+    if (this.isQuestion(text)) {
+      return this.answerQuestion(text);
     }
 
-    /* =====================================================
-       3️⃣ Topic Rules
-    ===================================================== */
-    const topicAnswer = TopicRules.getTopicAnswer(question);
-
-    /* =====================================================
-       4️⃣ Intent Resolution
-    ===================================================== */
-    const intent = IntentResolver.resolve(question);
-
-    /* =====================================================
-       5️⃣ FINAL DECISION (Bridge → ReasoningEngine)
-    ===================================================== */
-    const finalAnswer = this.bridge.getReasonedAnswer({
-      question,
-      intent,
-      learnedAnswer: null,      // runtime cache ऊपर handle हो चुका
-      topicAnswer
-    });
-
-    /* ---------- HARD GUARANTEE ---------- */
-    if (typeof finalAnswer === "string" && finalAnswer.trim() !== "") {
-      return finalAnswer;
-    }
-
-    return AnswerBank.GENERAL.UNKNOWN;
+    // =========================
+    // DEFAULT SAFE RESPONSE
+    // =========================
+    return "मैं सुन रही हूँ। आप आगे बोल सकते हैं।";
   }
 
-  /* =====================================================
-     🔑 LearningUI से बुलाया जाने वाला Hook
-     (जब नया Q/A सिखाया जाए)
-  ===================================================== */
-  onLearnedQA(question, answer) {
+  /* =========================
+     QUESTION HANDLER
+  ========================= */
+  answerQuestion(text) {
+
+    // पहचान
     if (
-      typeof question === "string" &&
-      typeof answer === "string" &&
-      question.trim() !== "" &&
-      answer.trim() !== ""
+      this.includesAny(text, ["तुम", "आप", "अंजली"]) &&
+      this.includesAny(text, ["कौन", "नाम"])
     ) {
-      this.runtimeLearned.set(question.trim(), answer.trim());
+      return "मेरा नाम अंजली है।";
     }
+
+    // क्यों
+    if (text.includes("क्यों")) {
+      return "क्यों का उत्तर कारण में छिपा होता है। आप विषय स्पष्ट करें।";
+    }
+
+    // कैसे
+    if (text.includes("कैसे")) {
+      return "कैसे का उत्तर प्रक्रिया से जुड़ा होता है। आप किस बारे में पूछ रहे हैं?";
+    }
+
+    // क्या
+    if (text.includes("क्या")) {
+      return "आप जो पूछ रहे हैं, वह विषय पर निर्भर करता है। कृपया थोड़ा और बताइए।";
+    }
+
+    // fallback (GUARANTEED)
+    return "आपका प्रश्न समझ में आ रहा है, लेकिन विषय स्पष्ट नहीं है।";
+  }
+
+  /* =========================
+     HELPERS (PURE)
+  ========================= */
+  isQuestion(text) {
+    return (
+      text.endsWith("?") ||
+      this.includesAny(text, ["क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन"])
+    );
+  }
+
+  includesAny(text, words) {
+    return words.some(word => text.includes(word));
   }
 }
