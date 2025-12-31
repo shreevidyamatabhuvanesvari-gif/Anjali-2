@@ -1,11 +1,12 @@
 // LearningController.js
 // Responsibility:
-// - प्रश्न के अनुसार सटीक उत्तर चुनना
-// - TopicRules + AnswerBank से तैयार उत्तर लौटाना
-// Rule-based | Deterministic | Voice-Safe | No AI/ML | No guessing
+// - प्रश्न के अनुसार उत्तर का चयन
+// - TopicRules + IntentResolver + AnswerBank का सुरक्षित उपयोग
+// Rule-based | Deterministic | Voice-Safe | No AI/ML
 
 import { TopicRules } from "./TopicRules.js";
 import { AnswerBank } from "./AnswerBank.js";
+import { IntentResolver } from "./IntentResolver.js";
 
 export class LearningController {
 
@@ -20,59 +21,43 @@ export class LearningController {
       return AnswerBank.GENERAL.CLARIFY;
     }
 
-    // 1️⃣ Topic-based answer (highest priority)
+    // 1️⃣ पहले इरादा पहचानें (समझ)
+    const intent = IntentResolver.resolve(text);
+
+    // 2️⃣ फिर विषय-आधारित उत्तर खोजें
     const topicAnswer = TopicRules.getTopicAnswer(text);
     if (typeof topicAnswer === "string") {
       return topicAnswer;
     }
 
-    // 2️⃣ Question-type handling (fallback logic)
-    if (this.isQuestion(text)) {
-      return this.answerByQuestionType(text);
-    }
-
-    // 3️⃣ Non-question statement
-    return AnswerBank.GENERAL.LISTENING;
+    // 3️⃣ विषय न मिले तो इरादे के अनुसार सुरक्षित उत्तर
+    return this.answerByIntent(intent);
   }
 
   /* =====================================================
-     QUESTION TYPE HANDLER (SAFE)
+     INTENT-BASED SAFE SELECTION
   ===================================================== */
 
-  answerByQuestionType(text) {
+  answerByIntent(intent) {
+    switch (intent) {
 
-    if (text.includes("क्यों")) {
-      return AnswerBank.QUESTION_TYPE.WHY;
+      case "INFORMATION":
+        return AnswerBank.GENERAL.CLARIFY;
+
+      case "EXPLANATION":
+        return AnswerBank.QUESTION_TYPE.WHY;
+
+      case "EMOTIONAL":
+        return AnswerBank.EMOTIONAL.EMPATHY;
+
+      case "ETHICAL":
+        return AnswerBank.ETHICAL.MORALITY;
+
+      case "GUIDANCE":
+        return AnswerBank.PRACTICAL.SOLUTION;
+
+      default:
+        return AnswerBank.GENERAL.UNKNOWN;
     }
-
-    if (text.includes("कैसे")) {
-      return AnswerBank.QUESTION_TYPE.HOW;
-    }
-
-    if (text.includes("क्या")) {
-      return AnswerBank.QUESTION_TYPE.WHAT;
-    }
-
-    if (this.includesAny(text, ["कब", "कहाँ", "कौन"])) {
-      return AnswerBank.QUESTION_TYPE.WHEN_WHERE_WHO;
-    }
-
-    // Guaranteed safe fallback
-    return AnswerBank.GENERAL.UNKNOWN;
-  }
-
-  /* =====================================================
-     HELPERS
-  ===================================================== */
-
-  isQuestion(text) {
-    return (
-      text.endsWith("?") ||
-      this.includesAny(text, ["क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन"])
-    );
-  }
-
-  includesAny(text, words) {
-    return words.some(word => text.includes(word));
   }
 }
