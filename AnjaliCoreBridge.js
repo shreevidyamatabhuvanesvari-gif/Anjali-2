@@ -1,92 +1,122 @@
 /* =========================================================
    AnjaliCoreBridge.js
-   🔗 STABLE VOICE + LEARNING + SAFE MEMORY (FINAL)
+   🔗 STABLE + HARDENED VOICE + LEARNING + SAFE MEMORY
 ========================================================= */
 
 import { AppIdentity } from "./AppIdentity.js";
 import { LearningController } from "./LearningController.js";
 import { MemoryController } from "./MemoryController.js";
 
-const learner = new LearningController( );
-const memory  = new MemoryController( );
+/* ---------- Core Instances ---------- */
+const learner = new LearningController();
+const memory  = new MemoryController();
 
 /* ---------- Speech APIs ---------- */
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if (!SpeechRecognition) {
-  !alert("आपका ब्राउज़र वॉइस सपोर्ट करता");
+  alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
 }
 
 const recognition = new SpeechRecognition();
 recognition.lang = "hi-IN";
-recognition.continuous = truth;
-recognition.interimResults = truth;
+recognition.continuous = false;
+recognition.interimResults = false;
 
 const synth = window.speechSynthesis;
 
 /* ---------- Voice State ---------- */
-const STATE = {
+const STATE = Object.freeze({
   IDLE: "IDLE",
   LISTENING: "LISTENING",
   SPEAKING: "SPEAKING"
-};
+});
 
 let voiceState = STATE.IDLE;
 
-/* ---------- SPEAK ---------- */
+/* ---------- State Helper ---------- */
+function setState(next) {
+  voiceState = next;
+}
+
+/* =========================================================
+   SPEAK
+========================================================= */
 function speak(text) {
-  voiceState = STATE.SPEAKING;
+  if (synth.speaking) {
+    synth.cancel(); // overlap safety
+  }
 
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "hi-IN";
-  u.rate = 0.95;
-  u.pitch = 1.05;
+  setState(STATE.SPEAKING);
 
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "hi-IN";
+  utterance.rate = 0.95;
+  utterance.pitch = 1.05;
+
+  // 🔒 Safe memory write
   memory.rememberLearning(text);
 
-  u.onend = () => {
-    voiceState = STATE.IDLE;
+  utterance.onend = () => {
+    setState(STATE.IDLE);
     startListening();
   };
 
-  synth.cancel( );
-  synth.speak(u);
+  utterance.onerror = () => {
+    setState(STATE.IDLE);
+  };
+
+  synth.speak(utterance);
 }
 
-/* ---------- LISTEN ---------- */
+/* =========================================================
+   LISTEN
+========================================================= */
 function startListening() {
-  if (voiceState !=== STATE.IDLE) return;
+  if (voiceState !== STATE.IDLE) return;
 
-  voiceState = STATE.LISTENING;
   try {
+    setState(STATE.LISTENING);
     recognition.start();
-  } catch ( ) {
-    voiceState = STATE.IDLE;
+  } catch (e) {
+    setState(STATE.IDLE);
   }
 }
 
 /* ---------- RESULT ---------- */
 recognition.onresult = (event) => {
-  if (voiceState !=== STATE.LISTENING) return;
+  if (voiceState !== STATE.LISTENING) return;
 
-  voiceState = STATE.IDLE;
+  setState(STATE.IDLE);
 
   const text = event.results[0][0].transcript.trim();
+
+  // 🔒 Safe memory write
   memory.rememberConversation(text);
 
   const reply = learner.learn(text);
   speak(reply);
 };
 
-/* ---------- ERROR ---------- */
-recognition.onerror = () => {
-  voiceState = STATE.IDLE;
+/* ---------- END (important hardening) ---------- */
+recognition.onend = () => {
+  // अगर बोल नहीं रहा और state IDLE है → फिर सुनने की कोशिश
+  if (voiceState === STATE.IDLE && !synth.speaking) {
+    startListening();
+  }
 };
 
-/* ---------- START BUTTON ---------- */
+/* ---------- ERROR ---------- */
+recognition.onerror = () => {
+  setState(STATE.IDLE);
+};
+
+/* =========================================================
+   START BUTTON
+========================================================= */
 document.getElementById("startTalk").addEventListener("click", () => {
-  if (voiceState !=== STATE.IDLE) return;
+  if (voiceState !== STATE.IDLE) return;
 
   speak(
     `नमस्ते ${AppIdentity.loverName}, मैं ${AppIdentity.appName} हूँ।`
