@@ -1,99 +1,55 @@
-// VoiceController.js
-// Responsibility: Speech only (listen + speak)
-// FIXED: Single restart point (utterance.onend)
-// GUARANTEE: Stable voice on mobile & desktop
+// LearningController.js
+// FINAL ACTIVE REASONING VERSION
+// Responsibility:
+// - Intent (समझ) पहचानना
+// - Reasoning (सोच) से उत्तर चुनना
+// - केवल AnswerBank से सुरक्षित वाक्य लौटाना
+// GUARANTEE: Voice-safe | Deterministic | No AI/ML | No guessing
 
-export class VoiceController {
+import { TopicRules } from "./TopicRules.js";
+import { AnswerBank } from "./AnswerBank.js";
+import { IntentResolver } from "./IntentResolver.js";
+import { ReasoningPolicy } from "./ReasoningPolicy.js";
 
-  constructor(onUserSpeech) {
-    this.onUserSpeech = onUserSpeech;
+export class LearningController {
 
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
-      return;
+  learn(input) {
+    // ---------- Absolute Guards ----------
+    if (typeof input !== "string") {
+      return AnswerBank.GENERAL.CLARIFY;
     }
 
-    this.recognition = new SpeechRecognition();
-    this.recognition.lang = "hi-IN";
-    this.recognition.continuous = false;
-    this.recognition.interimResults = false;
-
-    this.synth = window.speechSynthesis;
-
-    this.STATE = {
-      IDLE: "IDLE",
-      LISTENING: "LISTENING",
-      SPEAKING: "SPEAKING"
-    };
-
-    this.state = this.STATE.IDLE;
-
-    this._bindEvents();
-  }
-
-  /* ---------- Internal Wiring ---------- */
-  _bindEvents() {
-
-    this.recognition.onresult = (event) => {
-      if (this.state !== this.STATE.LISTENING) return;
-
-      this.state = this.STATE.IDLE;
-      const text = event.results[0][0].transcript.trim();
-
-      // User speech delivered to core
-      this.onUserSpeech(text);
-    };
-
-    this.recognition.onerror = () => {
-      // Silent fail-safe
-      this.state = this.STATE.IDLE;
-    };
-
-    // ❌ IMPORTANT:
-    // recognition.onend से listen() दोबारा नहीं बुलाया जाएगा
-    // (मोबाइल पर यही double-restart bug पैदा करता है)
-    this.recognition.onend = () => {
-      // intentionally empty
-    };
-  }
-
-  /* ---------- Public APIs ---------- */
-
-  speak(text) {
-    if (typeof text !== "string" || text.trim() === "") return;
-
-    if (this.synth.speaking) {
-      this.synth.cancel();
+    const text = input.trim();
+    if (text === "") {
+      return AnswerBank.GENERAL.CLARIFY;
     }
 
-    this.state = this.STATE.SPEAKING;
+    // ---------- 1️⃣ समझ (Intent) ----------
+    const intent = IntentResolver.resolve(text);
 
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "hi-IN";
-    u.rate = 0.95;
-    u.pitch = 1.05;
+    // ---------- 2️⃣ विषय (Topic) ----------
+    const topicAnswer = TopicRules.getTopicAnswer(text);
+    if (typeof topicAnswer === "string") {
+      return topicAnswer;
+    }
 
-    u.onend = () => {
-      // बोलना समाप्त → अब सुनना शुरू
-      this.state = this.STATE.IDLE;
-      this.listen();
-    };
+    // ---------- 3️⃣ सोच (Reasoning) ----------
+    // अभी memory संकेत safe-default हैं
+    const hasRecentEmotion = (intent === "EMOTIONAL");
+    const needsClarity = this.isQuestion(text);
 
-    this.synth.speak(u);
+    return ReasoningPolicy.decide({
+      intent,
+      hasRecentEmotion,
+      needsClarity
+    });
   }
 
-  listen() {
-    if (this.state !== this.STATE.IDLE) return;
-
-    try {
-      this.state = this.STATE.LISTENING;
-      this.recognition.start();
-    } catch (_) {
-      // duplicate start protection
-      this.state = this.STATE.IDLE;
-    }
+  /* ---------- Helper ---------- */
+  isQuestion(text) {
+    return (
+      text.endsWith("?") ||
+      ["क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन"].some(w => text.includes(w))
+    );
   }
 }
