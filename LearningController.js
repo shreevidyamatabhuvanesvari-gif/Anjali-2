@@ -1,60 +1,98 @@
 // LearningController.js
 // Responsibility:
-// - उपयोगकर्ता के कथन से सुरक्षित उत्तर चुनना
-// - TopicRules + IntentResolver + ReasoningPolicy को संयोजित करना
-// GUARANTEE:
-// - हर स्थिति में केवल string return
-// - VoiceController के साथ पूर्ण संगत (voice-safe)
+// - User के प्रश्न का सुरक्षित, निश्चित उत्तर देना
+// - Learned Q/A → TopicRules → ReasoningEngine (via Bridge)
+// - Voice pipeline को कभी break न होने देना
+// Rule-based | Deterministic | Offline | Voice-safe | FINAL
 
+import { LearningStorage } from "./LearningStorage.js";
 import { TopicRules } from "./TopicRules.js";
 import { IntentResolver } from "./IntentResolver.js";
-import { ReasoningPolicy } from "./ReasoningPolicy.js";
 import { AnswerBank } from "./AnswerBank.js";
+import { LearningControllerBridge } from "./LearningControllerBridge.js";
 
 export class LearningController {
 
+  constructor() {
+    this.storage = new LearningStorage();
+    this.bridge  = new LearningControllerBridge();
+
+    // 🔒 runtime cache (IndexedDB async समस्या का समाधान)
+    this.runtimeLearned = new Map();
+  }
+
+  /* =====================================================
+     MAIN ENTRY POINT
+  ===================================================== */
   learn(input) {
 
-    /* ---------- HARD INPUT GUARD ---------- */
-    if (typeof input !== "string") {
+    /* ---------- HARD STRING GUARD ---------- */
+    if (typeof input !== "string" || input.trim() === "") {
       return AnswerBank.GENERAL.CLARIFY;
     }
 
-    const text = input.trim();
-    if (text === "") {
-      return AnswerBank.GENERAL.CLARIFY;
+    const question = input.trim();
+
+    /* =====================================================
+       1️⃣ Learned Q/A (Runtime Cache – Instant)
+    ===================================================== */
+    if (this.runtimeLearned.has(question)) {
+      return this.runtimeLearned.get(question);
     }
 
     /* =====================================================
-       1️⃣ विषय-विशेष उत्तर (Direct Topic Match)
+       2️⃣ Learned Q/A (IndexedDB – Async Safe Load)
     ===================================================== */
-    const topicAnswer = TopicRules.getTopicAnswer(text);
-    if (typeof topicAnswer === "string") {
-      return topicAnswer;
+    try {
+      this.storage.findAnswer(question, (answer) => {
+        if (typeof answer === "string" && answer.trim() !== "") {
+          this.runtimeLearned.set(question, answer);
+        }
+      });
+    } catch (_) {
+      // कोई असर नहीं – fallback रहेगा
     }
 
     /* =====================================================
-       2️⃣ Intent पहचान
+       3️⃣ Topic Rules
     ===================================================== */
-    const intent = IntentResolver.resolve(text);
+    const topicAnswer = TopicRules.getTopicAnswer(question);
 
     /* =====================================================
-       3️⃣ Reasoning Policy (सुरक्षित निर्णय)
+       4️⃣ Intent Resolution
     ===================================================== */
-    const decidedAnswer = ReasoningPolicy.decide({
-      intent: intent,
-      hasRecentEmotion: intent === "EMOTIONAL",
-      needsClarity: intent === "INFORMATION"
+    const intent = IntentResolver.resolve(question);
+
+    /* =====================================================
+       5️⃣ FINAL DECISION (Bridge → ReasoningEngine)
+    ===================================================== */
+    const finalAnswer = this.bridge.getReasonedAnswer({
+      question,
+      intent,
+      learnedAnswer: null,      // runtime cache ऊपर handle हो चुका
+      topicAnswer
     });
 
-    /* =====================================================
-       4️⃣ FINAL STRING GUARD (अत्यंत महत्वपूर्ण)
-    ===================================================== */
-    if (typeof decidedAnswer === "string") {
-      return decidedAnswer;
+    /* ---------- HARD GUARANTEE ---------- */
+    if (typeof finalAnswer === "string" && finalAnswer.trim() !== "") {
+      return finalAnswer;
     }
 
-    /* ---------- ABSOLUTE FALLBACK ---------- */
     return AnswerBank.GENERAL.UNKNOWN;
+  }
+
+  /* =====================================================
+     🔑 LearningUI से बुलाया जाने वाला Hook
+     (जब नया Q/A सिखाया जाए)
+  ===================================================== */
+  onLearnedQA(question, answer) {
+    if (
+      typeof question === "string" &&
+      typeof answer === "string" &&
+      question.trim() !== "" &&
+      answer.trim() !== ""
+    ) {
+      this.runtimeLearned.set(question.trim(), answer.trim());
+    }
   }
 }
