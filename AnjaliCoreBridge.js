@@ -1,42 +1,85 @@
-/* ---------- SPEAK ---------- */
-function speak(text) {
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "hi-IN";
+/* =========================================================
+   AnjaliCoreBridge.js
+   🔗 Single Authority Connector
+   FINAL STABLE VOICE + LEARNING FLOW
+========================================================= */
 
-  u.onend = () => {
-    startListening(); // बोलना खत्म → सुनना शुरू
+/* ---------- Imports ---------- */
+import { AppIdentity } from "./AppIdentity.js";
+import { LearningController } from "./LearningController.js";
+
+/* ---------- Learning ---------- */
+const learner = new LearningController();
+
+/* ---------- Speech APIs ---------- */
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRecognition) {
+  alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
+}
+
+/* ---------- Recognition ---------- */
+const recognition = new SpeechRecognition();
+recognition.lang = "hi-IN";
+recognition.continuous = false;
+recognition.interimResults = false;
+
+/* ---------- Synthesis ---------- */
+const synth = window.speechSynthesis;
+
+/* ---------- State ---------- */
+let listening = false;
+
+/* =========================================================
+   SPEAK
+========================================================= */
+function speak(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "hi-IN";
+  utterance.rate = 0.95;
+  utterance.pitch = 1.05;
+
+  utterance.onend = () => {
+    startListening();   // बोलना खत्म → सुनना शुरू
   };
 
   synth.cancel();
-  synth.speak(u);
+  synth.speak(utterance);
 }
 
-/* ---------- LISTEN ---------- */
+/* =========================================================
+   LISTEN
+========================================================= */
 function startListening() {
-  if (listening) return;      // ✅ GUARD (बहुत जरूरी)
+  if (listening) return;      // 🔒 Guard
   listening = true;
   recognition.start();
 }
 
-recognition.onresult = (e) => {
+/* ---------- Result ---------- */
+recognition.onresult = (event) => {
   listening = false;
 
-  const text = e.results[0][0].transcript.trim();
+  const text = event.results[0][0].transcript.trim();
   const reply = learner.learn(text);
 
   speak(reply);
 };
 
-/* ---------- ERROR ---------- */
-recognition.onerror = (e) => {
-  console.error("Speech recognition error:", e);
+/* ---------- Error ---------- */
+recognition.onerror = (event) => {
+  console.error("Speech recognition error:", event.error);
   listening = false;
-  // ❌ यहाँ recognition.start() मत बुलाइए
 };
 
-/* ---------- START ---------- */
+/* =========================================================
+   START BUTTON
+========================================================= */
 document.getElementById("startTalk").addEventListener("click", () => {
   if (listening) return;
 
-  speak(`नमस्ते ${AppIdentity.loverName}, मैं ${AppIdentity.appName} हूँ।`);
+  speak(
+    `नमस्ते ${AppIdentity.loverName}, मैं ${AppIdentity.appName} हूँ।`
+  );
 });
