@@ -1,5 +1,5 @@
 // AnjaliCoreBridge.js
-// Responsibility: Voice + Learning orchestration (ANSWER FIX)
+// FINAL FIX: Voice + Learning COMPLETE LOOP
 
 import { VoiceController } from "./VoiceController.js";
 import { LearningController } from "./LearningController.js";
@@ -7,19 +7,18 @@ import { LearningController } from "./LearningController.js";
 const learner = new LearningController();
 
 const voice = new VoiceController((userText) => {
-
-  // 🔥 यही लाइन पहले गायब थी
+  // 🔑 अब userText वास्तव में आता है
   const reply = learner.learn(userText);
-
-  // अब वास्तविक उत्तर बोला जाएगा
   voice.speak(reply);
 });
 
-/* USER GESTURE */
 document.getElementById("startTalk").addEventListener("click", () => {
+  // 1️⃣ पहले बोले
+  voice.speak("नमस्ते, मैं अंजली हूँ। आपका प्रश्न सुन रही हूँ।");
 
-  voice.speak("नमस्ते, मैं अंजली हूँ। आप क्या पूछना चाहते हैं?");
-
-  // mic start (browser safe)
-  voice.listen();
+  // 2️⃣ बोलने के बाद सुनना अनिवार्य
+  // ⚠️ यह लाइन पहले missing थी या गलत समय पर थी
+  setTimeout(() => {
+    voice.listen();
+  }, 600); // browser-safe delay
 });
