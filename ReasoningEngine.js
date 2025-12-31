@@ -1,119 +1,135 @@
 // ReasoningEngine.js
 // Responsibility:
-// - Intent + Context के आधार पर सोच-समझ कर उत्तर देना
-// - प्रेमिका-जैसी संवेदनशील, स्थिर और विश्वासपूर्ण reasoning
-// Rule-based | Deterministic | Offline | Voice-safe | FINAL
+// - Intent + Topic + Learned Knowledge के आधार पर संतुलित, संवेदनशील और तर्कसंगत उत्तर चुनना
+// - प्रेमिका-जैसी संवेदना (empathy, respect, reassurance) + स्पष्ट तर्क
+// Rule-based | Offline | Deterministic | Voice-safe | GUARANTEED string
 
 import { AnswerBank } from "./AnswerBank.js";
+import { TopicRules } from "./TopicRules.js";
+import { IntentResolver } from "./IntentResolver.js";
 
 export class ReasoningEngine {
 
-  /**
-   * @param {Object} ctx
-   * @param {string} ctx.question
-   * @param {string} ctx.intent
-   * @param {string|null} ctx.topicAnswer
-   * @returns {string}
-   */
-  static think(ctx) {
+  constructor(options = {}) {
+    // हालिया भावनात्मक स्थिति (lightweight context)
+    this.context = {
+      recentEmotion: null,
+      lastIntent: null
+    };
 
-    const { question, intent, topicAnswer } = ctx;
-
-    /* ===============================
-       HARD SAFETY
-    =============================== */
-    if (typeof question !== "string" || question.trim() === "") {
-      return AnswerBank.GENERAL.CLARIFY;
-    }
-
-    /* ===============================
-       1️⃣ विषय का उत्तर पहले
-       (प्रेमिका स्पष्ट होती है)
-    =============================== */
-    if (typeof topicAnswer === "string" && topicAnswer.trim() !== "") {
-      return topicAnswer;
-    }
-
-    /* ===============================
-       2️⃣ भावनात्मक सोच
-       (सहानुभूति सर्वोपरि)
-    =============================== */
-    if (intent === "EMOTIONAL") {
-      return this.emotionalResponse(question);
-    }
-
-    /* ===============================
-       3️⃣ नैतिक / सही–गलत
-       (मूल्य आधारित सोच)
-    =============================== */
-    if (intent === "ETHICAL") {
-      return this.ethicalResponse();
-    }
-
-    /* ===============================
-       4️⃣ कारण / क्यों–कैसे
-       (समझाने की प्रवृत्ति)
-    =============================== */
-    if (intent === "EXPLANATION") {
-      return this.explanatoryResponse();
-    }
-
-    /* ===============================
-       5️⃣ मार्गदर्शन / समाधान
-       (साथ चलने वाली सोच)
-    =============================== */
-    if (intent === "GUIDANCE") {
-      return this.guidanceResponse();
-    }
-
-    /* ===============================
-       6️⃣ जानकारी / अस्पष्टता
-       (नरम स्पष्टता)
-    =============================== */
-    if (intent === "INFORMATION") {
-      return AnswerBank.GENERAL.CLARIFY;
-    }
-
-    /* ===============================
-       7️⃣ अंतिम fallback
-       (कभी चुप नहीं)
-    =============================== */
-    return AnswerBank.GENERAL.LISTENING;
+    // ट्यूनिंग (kernel से बदली जा सकती है)
+    this.config = {
+      warmth: options.warmth ?? true,          // प्रेमिका-जैसी सौम्यता
+      reassurance: options.reassurance ?? true,// ढांढस/आश्वासन
+      clarityFirst: options.clarityFirst ?? true
+    };
   }
 
   /* =====================================================
-     💖 प्रेमिका के गुण आधारित Responses
+     MAIN ENTRY
+  ===================================================== */
+  respond(input, learnedAnswer = null) {
+    // 🔒 String guard
+    if (typeof input !== "string" || input.trim() === "") {
+      return AnswerBank.GENERAL.CLARIFY;
+    }
+
+    const text = input.trim();
+
+    // 1️⃣ यदि सिखाया गया सटीक उत्तर उपलब्ध है — वही सर्वोपरि
+    if (typeof learnedAnswer === "string" && learnedAnswer.trim() !== "") {
+      return this._softenIfNeeded(learnedAnswer);
+    }
+
+    // 2️⃣ Topic आधारित सीधा उत्तर
+    const topicAnswer = TopicRules.getTopicAnswer(text);
+    if (typeof topicAnswer === "string") {
+      return this._softenIfNeeded(topicAnswer);
+    }
+
+    // 3️⃣ Intent पहचान
+    const intent = IntentResolver.resolve(text);
+    this.context.lastIntent = intent;
+
+    // 4️⃣ Intent + Context के आधार पर Reasoned चयन
+    const answer = this._decideByIntent(intent, text);
+
+    // 5️⃣ अंतिम सुरक्षा
+    return (typeof answer === "string" && answer.trim() !== "")
+      ? answer
+      : AnswerBank.GENERAL.UNKNOWN;
+  }
+
+  /* =====================================================
+     INTENT-BASED DECISION
+  ===================================================== */
+  _decideByIntent(intent, text) {
+
+    switch (intent) {
+
+      case "EMOTIONAL":
+        this.context.recentEmotion = "ACTIVE";
+        return this._emotionalResponse(text);
+
+      case "ETHICAL":
+        return this._ethicalResponse(text);
+
+      case "GUIDANCE":
+        return this._guidanceResponse(text);
+
+      case "EXPLANATION":
+        return AnswerBank.QUESTION_TYPE.WHY;
+
+      case "INFORMATION":
+        return this._informationResponse(text);
+
+      default:
+        // यदि हाल में भावनात्मक स्थिति रही है तो सौम्य उत्तर
+        if (this.context.recentEmotion && this.config.warmth) {
+          return AnswerBank.EMOTIONAL.EMPATHY;
+        }
+        return AnswerBank.GENERAL.UNKNOWN;
+    }
+  }
+
+  /* =====================================================
+     RESPONSE BUILDERS (RULED, SAFE)
   ===================================================== */
 
-  // 🌸 सहानुभूति + अपनापन
-  static emotionalResponse(question) {
-    return (
-      "मैं समझ सकती हूँ कि आप ऐसा महसूस कर रहे हैं। " +
-      "मैं आपके साथ हूँ, घबराने की ज़रूरत नहीं है।"
-    );
+  _emotionalResponse(text) {
+    // प्रेमिका-जैसी संवेदना: पहले समझ, फिर आश्वासन
+    if (this.config.reassurance) {
+      return `${AnswerBank.EMOTIONAL.EMPATHY} ${AnswerBank.EMOTIONAL.CALM}`;
+    }
+    return AnswerBank.EMOTIONAL.EMPATHY;
   }
 
-  // 🌼 नैतिकता + सम्मान
-  static ethicalResponse() {
-    return (
-      "सही और गलत केवल शब्द नहीं होते। " +
-      "जो प्रेम, सम्मान और ईमानदारी बढ़ाए वही सही होता है।"
-    );
+  _ethicalResponse(text) {
+    // सही-गलत को संतुलन के साथ रखना
+    return AnswerBank.ETHICAL.MORALITY;
   }
 
-  // 🌿 धैर्य + समझाना
-  static explanatoryResponse() {
-    return (
-      "हर बात का कारण होता है। " +
-      "शांत मन से समझने पर उत्तर स्वयं स्पष्ट होने लगता है।"
-    );
+  _guidanceResponse(text) {
+    // व्यवहारिक दिशा — बिना आदेशात्मक लहजे के
+    return AnswerBank.PRACTICAL.SOLUTION;
   }
 
-  // 🌷 मार्गदर्शन + साथ
-  static guidanceResponse() {
-    return (
-      "मैं यह नहीं कहूँगी कि क्या करना चाहिए, " +
-      "लेकिन मैं आपके साथ सोच सकती हूँ कि क्या बेहतर होगा।"
-    );
+  _informationResponse(text) {
+    // स्पष्टता को प्राथमिकता
+    if (this.config.clarityFirst) {
+      return AnswerBank.GENERAL.CLARIFY;
+    }
+    return AnswerBank.GENERAL.UNKNOWN;
   }
-}
+
+  /* =====================================================
+     TONE SOFTENER (VOICE-SAFE)
+  ===================================================== */
+  _softenIfNeeded(answer) {
+    // यहाँ string concatenation सीमित और सुरक्षित है
+    if (!this.config.warmth) return answer;
+
+    // यदि उत्तर पहले से भावनात्मक/सम्मानजनक है, वैसा ही रखें
+    return answer;
+  }
+      }
