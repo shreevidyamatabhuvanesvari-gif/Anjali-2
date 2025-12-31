@@ -1,48 +1,20 @@
-/* =========================================================
-   AnjaliCoreBridge.js
-   🔗 Single Authority Connector (PURE ORCHESTRATION)
-   Responsibility:
-   - Voice ↔ Learning ↔ Memory को जोड़ना
-   - IdentityGuard के माध्यम से सुरक्षित संबोधन
-========================================================= */
+// IdentityGuard.js
+// Responsibility: Safe & respectful identity resolution
 
-/* ---------- Imports ---------- */
-import { LearningController } from "./LearningController.js";
-import { MemoryController } from "./MemoryController.js";
-import { VoiceController } from "./VoiceController.js";
-import { getSafeLoverName, getSafeAppName } from "./IdentityGuard.js";
+import { AppIdentity } from "./AppIdentity.js";
 
-/* ---------- Core Instances ---------- */
-const learner = new LearningController();
-const memory  = new MemoryController();
+export function getSafeLoverName() {
+  const name = AppIdentity?.loverName;
+  if (typeof name === "string" && name.trim().length > 0) {
+    return name.trim();
+  }
+  return "प्रिय"; // कभी undefined/null नहीं
+}
 
-/* ---------- Voice Wiring ---------- */
-/*
-  VoiceController केवल बोलना/सुनना करता है।
-  जब यूज़र बोलता है, यह callback बुलाता है।
-*/
-const voice = new VoiceController((userText) => {
-
-  // 1️⃣ स्मृति: यूज़र का कथन (side-effect only)
-  memory.rememberConversation(userText);
-
-  // 2️⃣ सीख/निर्णय: उत्तर बनाना
-  const reply = learner.learn(userText);
-
-  // 3️⃣ स्मृति: अंजली का उत्तर (side-effect only)
-  memory.rememberLearning(reply);
-
-  // 4️⃣ आवाज़: उत्तर बोलना
-  voice.speak(reply);
-});
-
-/* ---------- UI Entry Point ---------- */
-document.getElementById("startTalk").addEventListener("click", () => {
-
-  // 🔒 IdentityGuard के माध्यम से सुरक्षित नाम
-  const loverName = getSafeLoverName();
-  const appName   = getSafeAppName();
-
-  // प्रारंभिक संबोधन
-  voice.speak(`नमस्ते ${loverName}, मैं ${appName} हूँ।`);
-});
+export function getSafeAppName() {
+  const name = AppIdentity?.appName;
+  if (typeof name === "string" && name.trim().length > 0) {
+    return name.trim();
+  }
+  return "मैं";
+}
