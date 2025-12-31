@@ -3,143 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>अंजली — संवाद व शिक्षण</title>
+  <title>अंजली — संवाद प्रारंभ</title>
 
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      min-height: 100%;
+      height: 100%;
       font-family: sans-serif;
       background: #faf7f4;
     }
 
-    /* ===== MAIN CENTER ===== */
     .center {
-      min-height: 100vh;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .stack {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      align-items: center;
-    }
-
     button {
-      padding: 18px 32px;
-      font-size: 18px;
-      border-radius: 12px;
+      padding: 20px 36px;
+      font-size: 20px;
+      border-radius: 14px;
       border: none;
       cursor: pointer;
       background: #6b2d2d;
       color: #ffffff;
-      min-width: 260px;
-    }
-
-    button:active {
-      transform: scale(0.97);
-    }
-
-    /* ===== PANEL BASE ===== */
-    .panel {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 999;
-      padding: 20px;
-      overflow-y: auto;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .panel-box {
-      background: #ffffff;
-      width: 100%;
-      max-width: 1000px;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 60vh;
-      resize: vertical;
-      padding: 14px;
-      font-size: 15px;
-      line-height: 1.6;
-      box-sizing: border-box;
     }
   </style>
 </head>
 
 <body>
 
-  <!-- MAIN BUTTONS -->
   <div class="center">
-    <div class="stack">
-      <button id="startTalk">अंजली — संवाद प्रारंभ</button>
-      <button id="openLearning">एप को सिखाएँ</button>
-      <button id="viewLearning">सीखी हुई बातें देखें</button>
-    </div>
+    <button id="startTalk">अंजली — संवाद प्रारंभ</button>
   </div>
 
-  <!-- LEARNING PANEL -->
-  <div id="learningPanel" class="panel">
-    <div class="panel-box">
-      <h3>प्रश्न–उत्तर सिखाएँ</h3>
-      <p>Q: प्रश्न<br>A: उत्तर</p>
-
-      <textarea id="learningInput"></textarea>
-
-      <div style="margin-top:14px;display:flex;gap:12px;">
-        <button id="saveLearning">सीख सहेजें</button>
-        <button id="closeLearning">बंद करें</button>
-      </div>
-
-      <div id="learningStatus" style="margin-top:10px;"></div>
-    </div>
-  </div>
-
-  <!-- VIEWER PANEL -->
-  <div id="viewerPanel" class="panel">
-    <div class="panel-box">
-      <h3>सीखी हुई बातें</h3>
-      <div id="learningList"></div>
-      <div style="margin-top:14px;">
-        <button id="closeViewer">बंद करें</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PURE JS (NO DEPENDENCY, NO CLASS TOGGLE) -->
-  <script>
-    const learningPanel = document.getElementById("learningPanel");
-    const viewerPanel   = document.getElementById("viewerPanel");
-
-    document.getElementById("openLearning").onclick = () => {
-      viewerPanel.style.display = "none";
-      learningPanel.style.display = "flex";
-    };
-
-    document.getElementById("closeLearning").onclick = () => {
-      learningPanel.style.display = "none";
-    };
-
-    document.getElementById("viewLearning").onclick = () => {
-      learningPanel.style.display = "none";
-      viewerPanel.style.display = "flex";
-    };
-
-    document.getElementById("closeViewer").onclick = () => {
-      viewerPanel.style.display = "none";
-    };
-  </script>
+  <!-- केवल एक script -->
+  <script type="module" src="./AnjaliCoreBridge.js"></script>
 
 </body>
 </html>
