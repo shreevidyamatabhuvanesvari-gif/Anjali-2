@@ -2,7 +2,7 @@
    AnjaliCoreBridge.js
    🔗 Single Authority Connector
    Voice + Memory + Learning
-   Voice Discipline Applied (Stable v2)
+   Voice Discipline Applied (Stable v2.1)
 ========================================================= */
 
 /* ---------- External Core Imports ---------- */
@@ -35,8 +35,8 @@ recognition.lang = "hi-IN";
 recognition.continuous = true;
 recognition.interimResults = false;
 
-// Speaker
-const synth = window.speechSynthesis();
+// ✅ Speaker (FIXED)
+const synth = window.speechSynthesis;
 
 /* ---------- State ---------- */
 let conversationActive = false;
@@ -46,8 +46,7 @@ let anjaliIsSpeaking = false;
 function AnjaliSpeak(text) {
   if (!conversationActive) return;
 
-  // 👂 अंजली बोलते समय सुनना बंद
-  recognition.stop();
+  recognition.stop();          // 👂 सुनना बंद
   anjaliIsSpeaking = true;
 
   const utterance = new SpeechSynthesisUtterance(text);
@@ -57,10 +56,8 @@ function AnjaliSpeak(text) {
 
   utterance.onend = () => {
     anjaliIsSpeaking = false;
-
-    // 👂 बोलना समाप्त → फिर से सुनना
     if (conversationActive) {
-      recognition.start();
+      recognition.start();     // 👂 फिर सुनना
     }
   };
 
@@ -81,10 +78,8 @@ recognition.onresult = (event) => {
 
   console.log(`${APP_IDENTITY.loverName}:`, lastResult);
 
-  // स्मृति में संग्रह
   memory.remember(lastResult);
 
-  // Stop Rule
   if (checkStopCondition(lastResult)) {
     conversationActive = false;
     recognition.stop();
@@ -92,7 +87,6 @@ recognition.onresult = (event) => {
     return;
   }
 
-  // सीखकर उत्तर
   const response = learner.learn(lastResult);
   AnjaliSpeak(response);
 };
