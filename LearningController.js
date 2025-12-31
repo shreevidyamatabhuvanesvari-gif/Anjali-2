@@ -1,89 +1,78 @@
-// VoiceController.js
-// Responsibility: Reliable Speech (listen + speak)
-// GUARANTEE: No double-start, no silent failure
+// LearningController.js
+// Responsibility: प्रश्न के अनुसार सटीक उत्तर देना
+// Rule-based, no AI/ML, no guessing
 
-export class VoiceController {
+export class LearningController {
 
-  constructor(onUserSpeech) {
-    this.onUserSpeech = onUserSpeech;
-
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
-      return;
+  learn(input) {
+    if (typeof input !== "string" || input.trim() === "") {
+      return "कृपया अपना प्रश्न स्पष्ट रूप से पूछिए।";
     }
 
-    this.recognition = new SpeechRecognition();
-    this.recognition.lang = "hi-IN";
-    this.recognition.continuous = false;
-    this.recognition.interimResults = false;
+    const text = input.trim();
 
-    this.synth = window.speechSynthesis;
+    // 1️⃣ प्रश्न पहचान
+    if (this.isQuestion(text)) {
+      return this.answerQuestion(text);
+    }
 
-    this.isListening = false;
-    this.isSpeaking = false;
-
-    this._bindEvents();
+    // 2️⃣ सामान्य कथन
+    return "मैं सुन रही हूँ। यदि कोई प्रश्न है तो स्पष्ट पूछिए।";
   }
 
-  /* ---------- Internal Wiring ---------- */
-  _bindEvents() {
+  /* =====================================================
+     QUESTION HANDLER
+  ===================================================== */
 
-    this.recognition.onresult = (event) => {
-      if (!this.isListening) return;
+  answerQuestion(text) {
 
-      this.isListening = false;
-      const text = event.results[0][0].transcript.trim();
+    // --- पहचान / नाम ---
+    if (this.includesAny(text, ["तुम", "आप", "अंजली"]) &&
+        this.includesAny(text, ["कौन", "नाम"])) {
+      return "मेरा नाम अंजली है।";
+    }
 
-      this.onUserSpeech(text);
-    };
+    // --- एप से संबंधित ---
+    if (this.includesAny(text, ["एप", "ऐप", "प्रोग्राम"])) {
+      return "यह एक संवाद करने वाला एप है, जो आपकी बात सुनकर उत्तर देता है।";
+    }
 
-    this.recognition.onerror = () => {
-      this.isListening = false;
-    };
+    // --- क्यों ---
+    if (text.includes("क्यों")) {
+      return "क्यों का उत्तर कारण पर निर्भर करता है। कृपया जिस विषय पर पूछ रहे हैं, उसे स्पष्ट करें।";
+    }
 
-    // ❌ यहाँ कोई auto-restart नहीं
-    this.recognition.onend = () => {
-      this.isListening = false;
-    };
+    // --- कैसे ---
+    if (text.includes("कैसे")) {
+      return "कैसे का उत्तर प्रक्रिया से जुड़ा होता है। आप किस प्रक्रिया के बारे में जानना चाहते हैं?";
+    }
+
+    // --- क्या ---
+    if (text.includes("क्या")) {
+      return "आप जो पूछ रहे हैं, उसका उत्तर विषय पर निर्भर है। कृपया थोड़ा और स्पष्ट करें।";
+    }
+
+    // --- कब / कहाँ / कौन ---
+    if (this.includesAny(text, ["कब", "कहाँ", "कौन"])) {
+      return "इस प्रश्न का उत्तर देने के लिए संदर्भ आवश्यक है। कृपया पूरा प्रश्न बताइए।";
+    }
+
+    // --- fallback (बहुत कम आएगा) ---
+    return "आपका प्रश्न समझ में आ रहा है, लेकिन विषय स्पष्ट नहीं है।";
   }
 
-  /* ---------- Speak ---------- */
-  speak(text) {
-    if (typeof text !== "string" || text.trim() === "") {
-      return; // 🔒 कभी खाली न बोले
-    }
+  /* =====================================================
+     HELPERS
+  ===================================================== */
 
-    if (this.synth.speaking) {
-      this.synth.cancel();
-    }
-
-    this.isSpeaking = true;
-
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "hi-IN";
-    u.rate = 0.95;
-    u.pitch = 1.05;
-
-    u.onend = () => {
-      this.isSpeaking = false;
-      this.listen();   // ✅ केवल यहीं से listen
-    };
-
-    this.synth.speak(u);
+  isQuestion(text) {
+    return (
+      text.endsWith("?") ||
+      this.includesAny(text, ["क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन"])
+    );
   }
 
-  /* ---------- Listen ---------- */
-  listen() {
-    if (this.isListening || this.isSpeaking) return;
-
-    try {
-      this.isListening = true;
-      this.recognition.start();
-    } catch (_) {
-      this.isListening = false;
-    }
+  includesAny(text, words) {
+    return words.some(word => text.includes(word));
   }
 }
