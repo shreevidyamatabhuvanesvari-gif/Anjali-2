@@ -1,87 +1,57 @@
 // MemoryController.js
-// Long-Term Memory System using IndexedDB (SAFE & READY-AWARE)
+// NON-BLOCKING Long-Term Memory System
+// GUARANTEED: App response will NEVER stop
 
 export class MemoryController {
 
   constructor() {
-    this.dbName = "ANJALI_LONG_TERM_MEMORY";
-    this.dbVersion = 1;
     this.db = null;
     this.ready = false;
-    this.queue = [];
-
     this._init();
   }
 
-  /* ---------- Initialization ---------- */
+  /* ---------- Init (NON-BLOCKING) ---------- */
   _init() {
-    const request = indexedDB.open(this.dbName, this.dbVersion);
+    const request = indexedDB.open("ANJALI_LONG_TERM_MEMORY", 1);
 
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-
-      const stores = [
-        "Conversations",
-        "EmotionalPatterns",
-        "TrustHistory",
-        "SilenceMoments",
-        "LearningGrowth"
-      ];
-
-      stores.forEach(name => {
-        if (!db.objectStoreNames.contains(name)) {
-          db.createObjectStore(name, {
-            keyPath: "id",
-            autoIncrement: true
-          });
-        }
-      });
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      ["Conversations","EmotionalPatterns","TrustHistory","SilenceMoments","LearningGrowth"]
+        .forEach(name => {
+          if (!db.objectStoreNames.contains(name)) {
+            db.createObjectStore(name, { keyPath: "id", autoIncrement: true });
+          }
+        });
     };
 
-    request.onsuccess = (event) => {
-      this.db = event.target.result;
+    request.onsuccess = (e) => {
+      this.db = e.target.result;
       this.ready = true;
-
-      // 🔁 queued writes flush
-      this.queue.forEach(job => {
-        this._write(job.store, job.data);
-      });
-      this.queue = [];
     };
 
     request.onerror = () => {
-      throw new Error("IndexedDB प्रारंभ नहीं हो सका");
+      // ❗ Memory failure MUST NOT stop app
+      console.warn("Memory disabled: IndexedDB unavailable");
+      this.ready = false;
     };
   }
 
-  /* ---------- Safe Writer ---------- */
-  _write(storeName, data) {
-    if (!this.ready) {
-      this.queue.push({ store: storeName, data });
-      return;
+  /* ---------- SAFE WRITE (NEVER BLOCKS) ---------- */
+  _write(store, data) {
+    if (!this.ready || !this.db) return; // 🔒 skip silently
+
+    try {
+      const tx = this.db.transaction(store, "readwrite");
+      tx.objectStore(store).add({
+        timestamp: Date.now(),
+        data
+      });
+    } catch (e) {
+      // ❗ ignore — response must continue
     }
-
-    const tx = this.db.transaction(storeName, "readwrite");
-    const store = tx.objectStore(storeName);
-
-    store.add({
-      timestamp: Date.now(),
-      data
-    });
   }
 
-  /* ---------- Reader ---------- */
-  _readAll(storeName, callback) {
-    if (!this.ready) return;
-
-    const tx = this.db.transaction(storeName, "readonly");
-    const store = tx.objectStore(storeName);
-    const req = store.getAll();
-
-    req.onsuccess = () => callback(req.result);
-  }
-
-  /* ---------- Public APIs ---------- */
+  /* ---------- PUBLIC APIs (ALL NON-BLOCKING) ---------- */
 
   rememberConversation(text) {
     this._write("Conversations", text);
@@ -103,23 +73,4 @@ export class MemoryController {
     this._write("LearningGrowth", detail);
   }
 
-  recallConversations(cb) {
-    this._readAll("Conversations", cb);
-  }
-
-  recallEmotions(cb) {
-    this._readAll("EmotionalPatterns", cb);
-  }
-
-  recallTrustHistory(cb) {
-    this._readAll("TrustHistory", cb);
-  }
-
-  recallSilenceMoments(cb) {
-    this._readAll("SilenceMoments", cb);
-  }
-
-  recallLearningGrowth(cb) {
-    this._readAll("LearningGrowth", cb);
-  }
 }
