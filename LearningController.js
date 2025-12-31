@@ -1,17 +1,19 @@
 // LearningController.js
+// FINAL WITH STRING-GUARD
 // Responsibility:
-// - प्रश्न के अनुसार उत्तर का चयन
-// - TopicRules + IntentResolver + AnswerBank का सुरक्षित उपयोग
-// Rule-based | Deterministic | Voice-Safe | No AI/ML
+// - Intent + Topic + Reasoning से उत्तर चुनना
+// - हर स्थिति में VALID STRING लौटाना
+// GUARANTEE: Voice-safe | Deterministic | No AI/ML
 
 import { TopicRules } from "./TopicRules.js";
 import { AnswerBank } from "./AnswerBank.js";
 import { IntentResolver } from "./IntentResolver.js";
+import { ReasoningPolicy } from "./ReasoningPolicy.js";
 
 export class LearningController {
 
   learn(input) {
-    // ---- Absolute guards ----
+    // ---------- Absolute Guards ----------
     if (typeof input !== "string") {
       return AnswerBank.GENERAL.CLARIFY;
     }
@@ -21,43 +23,43 @@ export class LearningController {
       return AnswerBank.GENERAL.CLARIFY;
     }
 
-    // 1️⃣ पहले इरादा पहचानें (समझ)
+    let result = null;
+
+    // ---------- 1️⃣ समझ (Intent) ----------
     const intent = IntentResolver.resolve(text);
 
-    // 2️⃣ फिर विषय-आधारित उत्तर खोजें
+    // ---------- 2️⃣ विषय (Topic) ----------
     const topicAnswer = TopicRules.getTopicAnswer(text);
     if (typeof topicAnswer === "string") {
-      return topicAnswer;
+      result = topicAnswer;
     }
 
-    // 3️⃣ विषय न मिले तो इरादे के अनुसार सुरक्षित उत्तर
-    return this.answerByIntent(intent);
+    // ---------- 3️⃣ सोच (Reasoning) ----------
+    if (result === null) {
+      const hasRecentEmotion = (intent === "EMOTIONAL");
+      const needsClarity = this.isQuestion(text);
+
+      result = ReasoningPolicy.decide({
+        intent,
+        hasRecentEmotion,
+        needsClarity
+      });
+    }
+
+    // ---------- 🔒 FINAL STRING-GUARD ----------
+    // ❗ यही वह निर्णायक लाइन है जो आवाज़ बचाती है
+    if (typeof result !== "string" || result.trim() === "") {
+      return AnswerBank.GENERAL.CLARIFY;
+    }
+
+    return result;
   }
 
-  /* =====================================================
-     INTENT-BASED SAFE SELECTION
-  ===================================================== */
-
-  answerByIntent(intent) {
-    switch (intent) {
-
-      case "INFORMATION":
-        return AnswerBank.GENERAL.CLARIFY;
-
-      case "EXPLANATION":
-        return AnswerBank.QUESTION_TYPE.WHY;
-
-      case "EMOTIONAL":
-        return AnswerBank.EMOTIONAL.EMPATHY;
-
-      case "ETHICAL":
-        return AnswerBank.ETHICAL.MORALITY;
-
-      case "GUIDANCE":
-        return AnswerBank.PRACTICAL.SOLUTION;
-
-      default:
-        return AnswerBank.GENERAL.UNKNOWN;
-    }
+  /* ---------- Helper ---------- */
+  isQuestion(text) {
+    return (
+      text.endsWith("?") ||
+      ["क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन"].some(w => text.includes(w))
+    );
   }
 }
