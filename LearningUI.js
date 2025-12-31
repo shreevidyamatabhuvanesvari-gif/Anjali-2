@@ -2,6 +2,7 @@
 // Responsibility:
 // - User द्वारा सिखाए गए प्रश्न–उत्तर को पढ़ना
 // - उन्हें LearningStorage में सुरक्षित रूप से सहेजना
+// - Modal (.show class) के माध्यम से UI खोलना/बंद करना
 // UI-only | Deterministic | Voice-safe | No guessing
 
 import { LearningStorage } from "./LearningStorage.js";
@@ -9,7 +10,10 @@ import { ResponseResolver } from "./ResponseResolver.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  const storage = new LearningStorage();
+  /* ===============================
+     CORE INSTANCES
+  =============================== */
+  const storage  = new LearningStorage();
   const resolver = new ResponseResolver();
 
   /* ===============================
@@ -23,32 +27,40 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusBox = document.getElementById("learningStatus");
 
   /* ===============================
-     HARD SAFETY CHECK (NO SILENT FAIL)
+     HARD SAFETY CHECK
   =============================== */
-  if (!openBtn || !panel || !closeBtn || !saveBtn || !inputBox || !statusBox) {
+  if (
+    !openBtn ||
+    !panel ||
+    !closeBtn ||
+    !saveBtn ||
+    !inputBox ||
+    !statusBox
+  ) {
     console.error("LearningUI disabled: required DOM elements missing");
-    return; // 🔒 यहीं रुक जाए — आगे कुछ नहीं चलेगा
+    return; // 🔒 आगे कुछ नहीं चलेगा
   }
 
   /* ===============================
-     OPEN PANEL
+     OPEN LEARNING MODAL
   =============================== */
   openBtn.addEventListener("click", () => {
-    panel.style.display = "block";
+    panel.classList.add("show");   // 🔑 modal-safe open
     statusBox.textContent = "";
   });
 
   /* ===============================
-     CLOSE PANEL
+     CLOSE LEARNING MODAL
   =============================== */
   closeBtn.addEventListener("click", () => {
-    panel.style.display = "none";
+    panel.classList.remove("show"); // 🔑 modal-safe close
   });
 
   /* ===============================
-     SAVE LEARNING
+     SAVE LEARNING (Q/A)
   =============================== */
   saveBtn.addEventListener("click", () => {
+
     const rawText = inputBox.value;
 
     if (typeof rawText !== "string" || rawText.trim() === "") {
@@ -58,22 +70,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const lines = rawText.split("\n");
 
-    let currentQ = null;
+    let currentQ   = null;
     let savedCount = 0;
 
     lines.forEach(line => {
       const text = line.trim();
 
+      // प्रश्न
       if (text.startsWith("Q:")) {
         currentQ = text.substring(2).trim();
       }
+
+      // उत्तर
       else if (text.startsWith("A:") && currentQ) {
         const answer = text.substring(2).trim();
 
         if (answer !== "") {
+          // IndexedDB में सुरक्षित करें
           storage.saveQA(currentQ, answer, "user");
 
-          // तुरंत resolver cache में भी डालें
+          // Runtime resolver cache में भी डालें
           resolver.addLearnedQA(currentQ, answer);
 
           savedCount++;
