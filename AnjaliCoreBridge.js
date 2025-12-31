@@ -1,16 +1,14 @@
 /* =========================================================
    AnjaliCoreBridge.js
-   🔗 FINAL VOICE + LEARNING + SAFE MEMORY
+   🔗 STABLE VOICE + LEARNING + SAFE MEMORY (FINAL)
 ========================================================= */
 
-/* ---------- Imports ---------- */
 import { AppIdentity } from "./AppIdentity.js";
 import { LearningController } from "./LearningController.js";
 import { MemoryController } from "./MemoryController.js";
 
-/* ---------- Core Instances ---------- */
 const learner = new LearningController();
-const memory = new MemoryController();
+const memory  = new MemoryController();
 
 /* ---------- Speech APIs ---------- */
 const SpeechRecognition =
@@ -27,22 +25,28 @@ recognition.interimResults = false;
 
 const synth = window.speechSynthesis;
 
-/* ---------- State ---------- */
-let listening = false;
+/* ---------- Voice State ---------- */
+const STATE = {
+  IDLE: "IDLE",
+  LISTENING: "LISTENING",
+  SPEAKING: "SPEAKING"
+};
 
-/* =========================================================
-   SPEAK
-========================================================= */
+let voiceState = STATE.IDLE;
+
+/* ---------- SPEAK ---------- */
 function speak(text) {
+  voiceState = STATE.SPEAKING;
+
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "hi-IN";
   u.rate = 0.95;
   u.pitch = 1.05;
 
-  // 🔒 Memory write (NON-BLOCKING)
   memory.rememberLearning(text);
 
   u.onend = () => {
+    voiceState = STATE.IDLE;
     startListening();
   };
 
@@ -50,38 +54,39 @@ function speak(text) {
   synth.speak(u);
 }
 
-/* =========================================================
-   LISTEN
-========================================================= */
+/* ---------- LISTEN ---------- */
 function startListening() {
-  if (listening) return;
-  listening = true;
-  recognition.start();
+  if (voiceState !== STATE.IDLE) return;
+
+  voiceState = STATE.LISTENING;
+  try {
+    recognition.start();
+  } catch (_) {
+    voiceState = STATE.IDLE;
+  }
 }
 
-/* ---------- Result ---------- */
+/* ---------- RESULT ---------- */
 recognition.onresult = (event) => {
-  listening = false;
+  if (voiceState !== STATE.LISTENING) return;
+
+  voiceState = STATE.IDLE;
 
   const text = event.results[0][0].transcript.trim();
-
-  // 🔒 Memory write (NON-BLOCKING)
   memory.rememberConversation(text);
 
   const reply = learner.learn(text);
   speak(reply);
 };
 
-/* ---------- Error ---------- */
+/* ---------- ERROR ---------- */
 recognition.onerror = () => {
-  listening = false;
+  voiceState = STATE.IDLE;
 };
 
-/* =========================================================
-   START BUTTON
-========================================================= */
+/* ---------- START BUTTON ---------- */
 document.getElementById("startTalk").addEventListener("click", () => {
-  if (listening) return;
+  if (voiceState !== STATE.IDLE) return;
 
   speak(
     `नमस्ते ${AppIdentity.loverName}, मैं ${AppIdentity.appName} हूँ।`
