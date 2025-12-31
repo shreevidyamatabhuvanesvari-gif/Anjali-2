@@ -1,17 +1,17 @@
 /* =========================================================
    AnjaliCoreBridge.js
    🔗 Single Authority Connector
-   Voice + Memory + Learning (Stable Integrated v1)
+   Voice + Memory + Learning
+   Voice Discipline Applied (Stable v2)
 ========================================================= */
 
 /* ---------- External Core Imports ---------- */
 import { AppIdentity } from "./AppIdentity.js";
 import { MemoryController } from "./MemoryController.js";
-import { VoiceController } from "./VoiceController.js";
 import { LearningController } from "./LearningController.js";
 import { runAllTests } from "./TestController.js";
 
-/* ---------- Identity Lock (Bridge Level) ---------- */
+/* ---------- Identity Lock ---------- */
 const APP_IDENTITY = Object.freeze({
   appName: AppIdentity.appName,
   loverName: AppIdentity.lover.name
@@ -21,7 +21,7 @@ const APP_IDENTITY = Object.freeze({
 const memory = new MemoryController();
 const learner = new LearningController();
 
-/* ---------- Speech Engines (Native Browser) ---------- */
+/* ---------- Speech Engines ---------- */
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -36,19 +36,33 @@ recognition.continuous = true;
 recognition.interimResults = false;
 
 // Speaker
-const synth = window.speechSynthesis;
+const synth = window.speechSynthesis();
 
 /* ---------- State ---------- */
 let conversationActive = false;
+let anjaliIsSpeaking = false;
 
-/* ---------- Speak Function ---------- */
+/* ---------- Speak Function (Voice Discipline Applied) ---------- */
 function AnjaliSpeak(text) {
   if (!conversationActive) return;
+
+  // 👂 अंजली बोलते समय सुनना बंद
+  recognition.stop();
+  anjaliIsSpeaking = true;
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "hi-IN";
   utterance.rate = 0.95;
   utterance.pitch = 1.05;
+
+  utterance.onend = () => {
+    anjaliIsSpeaking = false;
+
+    // 👂 बोलना समाप्त → फिर से सुनना
+    if (conversationActive) {
+      recognition.start();
+    }
+  };
 
   synth.speak(utterance);
 }
@@ -60,6 +74,8 @@ function checkStopCondition(spokenText) {
 
 /* ---------- Listening Logic ---------- */
 recognition.onresult = (event) => {
+  if (anjaliIsSpeaking) return; // 🔒 Echo Protection
+
   const lastResult =
     event.results[event.results.length - 1][0].transcript.trim();
 
@@ -68,7 +84,7 @@ recognition.onresult = (event) => {
   // स्मृति में संग्रह
   memory.remember(lastResult);
 
-  // Stop Condition
+  // Stop Rule
   if (checkStopCondition(lastResult)) {
     conversationActive = false;
     recognition.stop();
@@ -86,7 +102,7 @@ recognition.onerror = (event) => {
   console.error("Voice Error:", event.error);
 };
 
-/* ---------- Start Button Binding ---------- */
+/* ---------- Start Button ---------- */
 document.getElementById("startTalk").addEventListener("click", () => {
   if (conversationActive) return;
 
