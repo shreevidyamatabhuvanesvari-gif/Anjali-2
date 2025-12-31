@@ -1,6 +1,6 @@
 // MemoryController.js
-// NON-BLOCKING Long-Term Memory System
-// GUARANTEED: App response will NEVER stop
+// SAFE & NON-BLOCKING MEMORY LAYER
+// GUARANTEE: App response will NEVER stop
 
 export class MemoryController {
 
@@ -10,18 +10,23 @@ export class MemoryController {
     this._init();
   }
 
-  /* ---------- Init (NON-BLOCKING) ---------- */
+  /* ---------- Init (Background Only) ---------- */
   _init() {
     const request = indexedDB.open("ANJALI_LONG_TERM_MEMORY", 1);
 
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
-      ["Conversations","EmotionalPatterns","TrustHistory","SilenceMoments","LearningGrowth"]
-        .forEach(name => {
-          if (!db.objectStoreNames.contains(name)) {
-            db.createObjectStore(name, { keyPath: "id", autoIncrement: true });
-          }
-        });
+      [
+        "Conversations",
+        "EmotionalPatterns",
+        "TrustHistory",
+        "SilenceMoments",
+        "LearningGrowth"
+      ].forEach(name => {
+        if (!db.objectStoreNames.contains(name)) {
+          db.createObjectStore(name, { keyPath: "id", autoIncrement: true });
+        }
+      });
     };
 
     request.onsuccess = (e) => {
@@ -30,15 +35,14 @@ export class MemoryController {
     };
 
     request.onerror = () => {
-      // ❗ Memory failure MUST NOT stop app
       console.warn("Memory disabled: IndexedDB unavailable");
       this.ready = false;
     };
   }
 
-  /* ---------- SAFE WRITE (NEVER BLOCKS) ---------- */
+  /* ---------- Internal Safe Write ---------- */
   _write(store, data) {
-    if (!this.ready || !this.db) return; // 🔒 skip silently
+    if (!this.ready || !this.db) return; // 🔒 NEVER BLOCK
 
     try {
       const tx = this.db.transaction(store, "readwrite");
@@ -46,31 +50,26 @@ export class MemoryController {
         timestamp: Date.now(),
         data
       });
-    } catch (e) {
-      // ❗ ignore — response must continue
+    } catch (_) {
+      // ❗ ignore completely
     }
   }
 
-  /* ---------- PUBLIC APIs (ALL NON-BLOCKING) ---------- */
+  /* ---------- Public APIs (All Non-Blocking) ---------- */
 
   rememberConversation(text) {
     this._write("Conversations", text);
+  }
+
+  rememberLearning(reply) {
+    this._write("LearningGrowth", reply);
   }
 
   rememberEmotion(emotion) {
     this._write("EmotionalPatterns", emotion);
   }
 
-  rememberTrustEvent(event) {
-    this._write("TrustHistory", event);
-  }
-
   rememberSilence(reason) {
     this._write("SilenceMoments", reason);
   }
-
-  rememberLearning(detail) {
-    this._write("LearningGrowth", detail);
-  }
-
 }
