@@ -1,6 +1,5 @@
 /* =========================================================
-   stt.js
-   Role: Speech To Text → Question → LearningBridge
+   Ultra Robust STT → TTS Controller (Best Possible on Web)
    ========================================================= */
 
 (function (window) {
@@ -10,48 +9,88 @@
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    console.warn("STT not supported in this browser");
+    console.warn("SpeechRecognition not supported");
     return;
   }
 
   const recognition = new SpeechRecognition();
   recognition.lang = "hi-IN";
-  recognition.continuous = false;
   recognition.interimResults = false;
+  recognition.continuous = false;
+
+  let busy = false;
+
+  function safeSpeak(text) {
+    if (!window.TTS) return;
+
+    // 1️⃣ पहले सब कुछ रोक दो
+    window.speechSynthesis.cancel();
+
+    // 2️⃣ छोटा delay ताकि audio focus लौट सके
+    setTimeout(() => {
+      try {
+        TTS.init();
+        TTS.speak(text);
+      } catch (e) {
+        console.warn("TTS failed", e);
+      }
+    }, 400);
+  }
 
   recognition.onresult = async function (event) {
+    if (busy) return;
+    busy = true;
+
     const transcript = event.results[0][0].transcript.trim();
 
-    console.log("STT heard:", transcript);
+    // 🔴 सबसे ज़रूरी: STT पूरी तरह बंद
+    recognition.stop();
 
-    // 🔑 यही सबसे ज़रूरी लाइन है
+    // पुष्टि
+    safeSpeak("आपने पूछा: " + transcript);
+
+    // ज्ञान खोज
     if (window.LearningBridge) {
-      await LearningBridge.answerQuestion(transcript);
-    } else if (window.TTS) {
-      TTS.speak("मुझे अभी उत्तर देने की व्यवस्था नहीं मिली है।");
+      try {
+        const knowledge = await LearningBridge.getKnowledge();
+        const found = knowledge.find(k =>
+          transcript.includes(k.question) ||
+          k.question.includes(transcript)
+        );
+
+        if (found) {
+          safeSpeak(found.answer);
+        } else {
+          safeSpeak("इस प्रश्न का उत्तर मेरे ज्ञान में उपलब्ध नहीं है।");
+        }
+      } catch (e) {
+        safeSpeak("उत्तर प्राप्त करने में समस्या आई है।");
+      }
     }
+
+    // unlock
+    setTimeout(() => {
+      busy = false;
+    }, 1500);
   };
 
   recognition.onerror = function () {
-    if (window.TTS) {
-      TTS.speak("मैं आपकी आवाज़ ठीक से सुन नहीं पाई।");
-    }
+    busy = false;
+    safeSpeak("मैं आपकी आवाज़ स्पष्ट नहीं सुन पाई।");
   };
 
   // ---------- Expose ----------
-  Object.defineProperty(window, "STT", {
-    value: {
-      start() {
+  window.STT = {
+    start() {
+      try {
         recognition.start();
-        if (window.TTS) {
-          TTS.speak("मैं सुन रही हूँ। कृपया प्रश्न बोलिए।");
-        }
-      },
-      stop() {
-        recognition.stop();
-      }
+      } catch (e) {}
     },
-    writable: false
-  });
+    stop() {
+      try {
+        recognition.stop();
+      } catch (e) {}
+    }
+  };
 
 })(window);
