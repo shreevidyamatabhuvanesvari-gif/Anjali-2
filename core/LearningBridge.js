@@ -1,115 +1,54 @@
-/* =========================================================
-   LearningBridge.js
-   Role: Deterministic Bridge between Question, Knowledge & Voice
-   ========================================================= */
-
-(function (window) {
-  "use strict";
-
-  // ---------- Dependency Check ----------
-  if (!window.KnowledgeBase) {
-    throw new Error("LearningBridge: KnowledgeBase not loaded");
-  }
-  if (!window.ExperienceMemory) {
-    throw new Error("LearningBridge: ExperienceMemory not loaded");
-  }
-  if (!window.TTS) {
-    throw new Error("LearningBridge: TTS not loaded");
+// ---------- Answer Question (FIXED & DETERMINISTIC) ----------
+async answerQuestion(questionText) {
+  if (!questionText || typeof questionText !== "string") {
+    const msg = "प्रश्न समझ में नहीं आया।";
+    TTS.speak(msg);
+    return msg;
   }
 
-  // ---------- Bridge Object ----------
-  const LearningBridge = {
+  // normalize function (VERY IMPORTANT)
+  const normalize = (s) =>
+    s.replace(/[?？]/g, "")      // प्रश्नचिह्न हटाएँ
+     .replace(/\s+/g, " ")       // extra spaces
+     .trim()
+     .toLowerCase();
 
-    // ---------- Init ----------
-    async init() {
-      await KnowledgeBase.init();
-      await ExperienceMemory.init();
-      return true;
-    },
+  const userQ = normalize(questionText);
 
-    // ---------- Learn (Admin side) ----------
-    async learnQA({ question, answer, tags = [] }) {
-      if (!question || !answer) {
-        throw new Error("Invalid QA");
-      }
+  const allKnowledge = await KnowledgeBase.getAll();
 
-      await KnowledgeBase.saveOne({
-        question: question.trim(),
-        answer: answer.trim(),
-        tags
-      });
+  let matched = null;
 
-      await ExperienceMemory.save({
-        type: "learn_qa",
-        payload: { question, tags }
-      });
+  for (const item of allKnowledge) {
+    if (!item.question) continue;
 
-      return true;
-    },
+    const savedQ = normalize(item.question);
 
-    // ---------- Answer Question (USER SIDE) ----------
-    async answerQuestion(questionText) {
-      if (!questionText || typeof questionText !== "string") {
-        const msg = "प्रश्न समझ में नहीं आया।";
-        TTS.speak(msg);
-        return msg;
-      }
-
-      const question = questionText.trim();
-
-      // Load all learned knowledge
-      const allKnowledge = await KnowledgeBase.getAll();
-
-      let matched = null;
-
-      // Deterministic matching (no AI, no guess)
-      for (const item of allKnowledge) {
-        if (
-          item.question &&
-          question.includes(item.question.trim())
-        ) {
-          matched = item;
-          break;
-        }
-      }
-
-      let answer;
-      if (matched) {
-        answer = matched.answer;
-      } else {
-        answer = "इस प्रश्न का उत्तर अभी मुझे सिखाया नहीं गया है।";
-      }
-
-      // Record interaction
-      await ExperienceMemory.save({
-        type: "question_answered",
-        payload: {
-          question,
-          answered: !!matched
-        }
-      });
-
-      // Speak answer
-      TTS.speak(answer);
-
-      return answer;
-    },
-
-    // ---------- Utilities ----------
-    async getAllKnowledge() {
-      return KnowledgeBase.getAll();
-    },
-
-    async getAllExperiences() {
-      return ExperienceMemory.getAll();
+    // 🔒 EXACT MATCH AFTER NORMALIZATION
+    if (userQ === savedQ) {
+      matched = item;
+      break;
     }
-  };
+  }
 
-  // ---------- Expose ----------
-  Object.defineProperty(window, "LearningBridge", {
-    value: LearningBridge,
-    writable: false,
-    configurable: false
+  let answer;
+  if (matched) {
+    answer = matched.answer;
+  } else {
+    answer = "इस प्रश्न का उत्तर अभी मुझे सिखाया नहीं गया है।";
+  }
+
+  // अनुभव दर्ज
+  await ExperienceMemory.save({
+    type: "question_answered",
+    payload: {
+      question: questionText,
+      matched: !!matched
+    }
   });
 
-})(window);
+  // बोलो
+  TTS.speak(answer);
+
+  return answer;
+}
