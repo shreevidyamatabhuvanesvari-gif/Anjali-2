@@ -1,56 +1,110 @@
-/* =========================================================
-   tts.js
-   Role: Text To Speech (Guaranteed, Browser Native)
-   Works on: Android Chrome, Samsung Internet
-   ========================================================= */
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>अंजली</title>
 
-(function (window) {
-  "use strict";
-
-  if (!("speechSynthesis" in window)) {
-    console.error("SpeechSynthesis not supported");
-    return;
-  }
-
-  let unlocked = false;
-
-  // 🔓 Mobile audio unlock (MANDATORY)
-  function unlock() {
-    if (unlocked) return;
-    const u = new SpeechSynthesisUtterance(" ");
-    u.volume = 0;
-    window.speechSynthesis.speak(u);
-    unlocked = true;
-  }
-
-  // First user gesture unlock
-  document.addEventListener("click", unlock, { once: true });
-  document.addEventListener("touchstart", unlock, { once: true });
-
-  const TTS = {
-    init() {
-      unlock();
-    },
-
-    speak(text) {
-      if (!text) return;
-      unlock();
-      window.speechSynthesis.cancel();
-
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "hi-IN";
-      u.rate = 1;
-      u.pitch = 1;
-      u.volume = 1;
-
-      window.speechSynthesis.speak(u);
-    },
-
-    stop() {
-      window.speechSynthesis.cancel();
+  <style>
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#fff3ea;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari", Arial, sans-serif;
     }
-  };
+    .card{
+      width:92%;
+      max-width:420px;
+      background:#ffffff;
+      border-radius:22px;
+      padding:22px;
+      text-align:center;
+      box-shadow:0 14px 30px rgba(0,0,0,.12);
+    }
+    .btn{
+      padding:12px 16px;
+      border-radius:16px;
+      border:none;
+      cursor:pointer;
+      background:#8b2d2d;
+      color:#fff;
+      margin:6px;
+    }
+    .btn.secondary{
+      background:#fff;
+      color:#8b2d2d;
+      border:1px dashed #8b2d2d;
+    }
+  </style>
+</head>
 
-  window.TTS = TTS;
+<body>
+  <div class="card">
+    <h2>🌸 अंजली</h2>
+    <div id="status">तैयार</div>
 
-})(window);
+    <button class="btn" id="startBtn">बोलकर पूछें</button>
+    <button class="btn secondary" id="adminBtn">Admin Panel</button>
+  </div>
+
+  <!-- =====================================================
+       1️⃣ CORE (सबसे पहले)
+  ====================================================== -->
+  <script src="core/AnjaliCore.js"></script>
+
+  <!-- =====================================================
+       2️⃣ LEARNING LAYER
+  ====================================================== -->
+  <script src="learning/KnowledgeBase.js"></script>
+  <script src="learning/ExperienceMemory.js"></script>
+
+  <!-- =====================================================
+       3️⃣ BRIDGE + CONTROL
+  ====================================================== -->
+  <script src="core/LearningBridge.js"></script>
+  <script src="core/AdminControl.js"></script>
+
+  <!-- =====================================================
+       4️⃣ VOICE LAYER
+  ====================================================== -->
+  <script src="voice/tts.js"></script>
+  <script src="voice/stt.js"></script>
+
+  <!-- =====================================================
+       5️⃣ ADMIN (INDEX से सिर्फ़ लोड, UI admin.html में)
+  ====================================================== -->
+  <script src="admin/admin_learning_ui.js"></script>
+  <script src="admin/admin_bulk_loader.js"></script>
+  <script src="admin/admin_learning_view.js"></script>
+
+  <!-- =====================================================
+       6️⃣ ONE-TIME INIT + BASIC FLOW
+  ====================================================== -->
+  <script>
+    // Bridge init
+    if (window.LearningBridge) {
+      LearningBridge.init();
+    }
+
+    // Start interaction
+    document.getElementById("startBtn").onclick = function () {
+      document.getElementById("status").textContent = "मैं सुन रही हूँ…";
+
+      if (window.TTS) {
+        TTS.speak("मैं सुन रही हूँ। आप प्रश्न पूछ सकते हैं।");
+      }
+
+      if (window.STT) {
+        STT.start();
+      }
+    };
+
+    document.getElementById("adminBtn").onclick = function () {
+      window.location.href = "admin.html";
+    };
+  </script>
+</body>
+</html>
