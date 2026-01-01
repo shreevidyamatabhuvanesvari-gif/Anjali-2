@@ -1,100 +1,109 @@
 /* =========================================================
-   tts.js
-   Role: Text To Speech (Deterministic, Browser Native)
-   Fix: Mobile Chrome Audio Unlock
+   stt.js
+   Role: Speech To Text + Answer via LearningBridge
+   Environment: Mobile Chrome / Desktop Chrome
    ========================================================= */
 
-(function (window, document) {
+(function (window) {
   "use strict";
 
-  if (!("speechSynthesis" in window)) {
-    throw new Error("SpeechSynthesis not supported");
+  // ---------- Browser Support Check ----------
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    console.warn("SpeechRecognition not supported");
+    return;
   }
 
-  let unlocked = false;
-  let currentUtterance = null;
+  const recognition = new SpeechRecognition();
 
-  // ---------- AUDIO UNLOCK (MANDATORY FOR MOBILE CHROME) ----------
-  function unlockAudio() {
-    if (unlocked) return;
+  // ---------- Deterministic Config ----------
+  recognition.lang = "hi-IN";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
 
-    const u = new SpeechSynthesisUtterance(" ");
-    u.volume = 0; // silent unlock
-    window.speechSynthesis.speak(u);
+  let listening = false;
 
-    unlocked = true;
-  }
+  // ---------- STT API ----------
+  const STT = {
 
-  // Attach unlock to first user gesture
-  document.addEventListener(
-    "click",
-    function () {
-      unlockAudio();
-    },
-    { once: true }
-  );
+    start() {
+      if (listening) return;
+      listening = true;
 
-  document.addEventListener(
-    "touchstart",
-    function () {
-      unlockAudio();
-    },
-    { once: true }
-  );
-
-  // ---------- TTS API ----------
-  const TTS = {
-
-    // Ensure audio is unlocked (safe to call multiple times)
-    init() {
-      unlockAudio();
-      return true;
-    },
-
-    // ---------- Speak ----------
-    speak(text, options = {}) {
-      if (!text || typeof text !== "string") {
-        throw new Error("Invalid text for TTS");
+      try {
+        recognition.start();
+      } catch (e) {
+        listening = false;
       }
-
-      // Ensure unlocked
-      unlockAudio();
-
-      // Stop any ongoing speech
-      window.speechSynthesis.cancel();
-
-      const u = new SpeechSynthesisUtterance(text);
-
-      // Deterministic defaults
-      u.lang = options.lang || "hi-IN";
-      u.rate = options.rate || 1;
-      u.pitch = options.pitch || 1;
-      u.volume = options.volume || 1;
-
-      currentUtterance = u;
-      window.speechSynthesis.speak(u);
-
-      return true;
     },
 
-    // ---------- Stop ----------
     stop() {
-      window.speechSynthesis.cancel();
-      currentUtterance = null;
-      return true;
-    },
-
-    // ---------- Status ----------
-    isSpeaking() {
-      return window.speechSynthesis.speaking;
+      listening = false;
+      recognition.stop();
     }
   };
 
+  // ---------- RESULT HANDLER (⭐ निर्णायक हिस्सा) ----------
+  recognition.onresult = async function (event) {
+    listening = false;
+
+    const transcript = event.results[0][0].transcript.trim();
+
+    // यूज़र को सुनने की पुष्टि
+    if (window.TTS) {
+      TTS.speak("आपने पूछा: " + transcript);
+    }
+
+    // 🔑 उत्तर निकालना
+    if (!window.LearningBridge) {
+      if (window.TTS) {
+        TTS.speak("ज्ञान प्रणाली उपलब्ध नहीं है।");
+      }
+      return;
+    }
+
+    try {
+      const knowledge = await LearningBridge.getKnowledge();
+
+      // सरल और सुरक्षित मिलान
+      const found = knowledge.find(k =>
+        transcript.includes(k.question) ||
+        k.question.includes(transcript)
+      );
+
+      if (found && found.answer) {
+        TTS.speak(found.answer);
+      } else {
+        TTS.speak("इस प्रश्न का उत्तर अभी मेरे ज्ञान में नहीं है।");
+      }
+
+    } catch (e) {
+      if (window.TTS) {
+        TTS.speak("उत्तर प्राप्त करने में समस्या आई।");
+      }
+    }
+  };
+
+  // ---------- ERROR HANDLER ----------
+  recognition.onerror = function () {
+    listening = false;
+    if (window.TTS) {
+      TTS.speak("मैं अभी आपकी बात नहीं समझ पाई।");
+    }
+  };
+
+  recognition.onend = function () {
+    listening = false;
+  };
+
   // ---------- Expose ----------
-  Object.defineProperty(window, "TTS", {
-    value: TTS,
+  Object.defineProperty(window, "STT", {
+    value: STT,
     writable: false,
     configurable: false
   });
 
-})(window, document);
+})(window);
