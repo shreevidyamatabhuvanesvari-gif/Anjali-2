@@ -1,7 +1,7 @@
 /* =========================================================
    admin_bulk_loader.js
    Role: Bulk Learning Loader (1000+ QnA)
-   Stage: 5 (Fixed – REAL SAVE)
+   Stage: 5 (Fixed – REAL SAVE + INIT)
    ========================================================= */
 
 (function () {
@@ -70,9 +70,9 @@
   if (openBtn) {
     openBtn.onclick = () => {
       modal.style.display = "flex";
-      document.getElementById("bulkInfo").style.color = "#9fdf9f";
-      document.getElementById("bulkInfo").textContent =
-        "Bulk मोड सक्रिय — अभी सेव नहीं किया गया";
+      const info = document.getElementById("bulkInfo");
+      info.style.color = "#9fdf9f";
+      info.textContent = "Bulk मोड सक्रिय — अभी सेव नहीं किया गया";
     };
   }
 
@@ -84,13 +84,22 @@
     modal.style.display = "none";
   };
 
-  // ---- REAL PROCESS + SAVE ----
+  // ---- REAL PROCESS + SAVE (WITH INIT) ----
   document.getElementById("bulkProcess").onclick = async () => {
     const info = document.getElementById("bulkInfo");
 
     if (!window.KnowledgeBase) {
       info.style.color = "#ff9f9f";
       info.textContent = "KnowledgeBase उपलब्ध नहीं है।";
+      return;
+    }
+
+    try {
+      // 🔒 सुनिश्चित करें कि DB initialized है
+      await KnowledgeBase.init();
+    } catch (e) {
+      info.style.color = "#ff9f9f";
+      info.textContent = "KnowledgeBase init असफल।";
       return;
     }
 
@@ -115,6 +124,7 @@
       info.textContent =
         `स्थायी रूप से सेव किए गए प्रश्न–उत्तर: ${saved}`;
     } catch (e) {
+      console.error(e);
       info.style.color = "#ff9f9f";
       info.textContent = "Bulk सेव करने में त्रुटि हुई।";
     }
