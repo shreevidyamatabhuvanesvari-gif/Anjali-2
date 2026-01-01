@@ -47,14 +47,6 @@
       color:var(--accent);
       letter-spacing:.3px;
     }
-    .badge{
-      font-size:12px;
-      padding:6px 10px;
-      border-radius:999px;
-      background:#2a2a2a;
-      border:1px solid var(--line);
-      color:#cfcfcf;
-    }
     .section{
       border:1px solid var(--line);
       border-radius:14px;
@@ -89,9 +81,6 @@
       border:1px dashed var(--line);
       box-shadow:none;
     }
-    .btn.warn{
-      background:linear-gradient(180deg,#ffb3b3,#ff9f9f);
-    }
     .status{
       font-size:12px;
       padding:8px 10px;
@@ -115,13 +104,12 @@
   <main class="panel">
     <div class="header">
       <div class="title">⚙️ अंजली — Admin Panel</div>
-      <div class="badge">Authority • Locked</div>
     </div>
 
     <div class="section">
       <h3>Core Status</h3>
       <div class="row">
-        <div class="status" id="coreStatus">Core: जाँच जारी…</div>
+        <div class="status" id="coreStatus">जाँच जारी…</div>
         <button class="btn secondary" id="refreshCore">रीफ़्रेश</button>
       </div>
     </div>
@@ -135,70 +123,48 @@
       </div>
     </div>
 
-    <div class="section">
-      <h3>System Control</h3>
-      <div class="row">
-        <button class="btn warn" id="toggleSilent">मौन मोड</button>
-        <button class="btn secondary" id="lockLearning">Learning Lock</button>
-      </div>
-    </div>
-
     <div class="footer">
       Admin • Stage 3
     </div>
   </main>
 
-  <!-- Core -->
+  <!-- ================= CORE & SYSTEM ================= -->
   <script src="core/AnjaliCore.js"></script>
+  <script src="core/LearningBridge.js"></script>
+  <script src="core/AdminControl.js"></script>
 
-  <!-- Knowledge Base -->
+  <!-- ================= LEARNING ================= -->
   <script src="learning/KnowledgeBase.js"></script>
+  <script src="learning/ExperienceMemory.js"></script>
 
-  <!-- ✅ CRITICAL: KnowledgeBase INIT -->
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      if (window.KnowledgeBase) {
-        try {
-          await KnowledgeBase.init();
-          console.log("KnowledgeBase initialized");
-        } catch (e) {
-          console.error("KnowledgeBase init failed", e);
-        }
-      }
-    });
-  </script>
-
-  <!-- Admin Features -->
+  <!-- ================= ADMIN UI ================= -->
   <script src="admin/admin_learning_ui.js"></script>
   <script src="admin/admin_bulk_loader.js"></script>
   <script src="admin/admin_learning_view.js"></script>
 
-  <!-- Stage-3 Wiring -->
+  <!-- ================= VOICE (FUTURE) ================= -->
+  <script src="voice/tts.js"></script>
+  <script src="voice/stt.js"></script>
+
+  <!-- ================= DETERMINISTIC WIRING ================= -->
   <script>
     (function(){
-      const statusEl = document.getElementById('coreStatus');
-      const refreshBtn = document.getElementById('refreshCore');
-      const silentBtn = document.getElementById('toggleSilent');
+      const statusEl = document.getElementById("coreStatus");
+      const refreshBtn = document.getElementById("refreshCore");
 
       function refresh(){
         if (window.AnjaliCore) {
           const s = AnjaliCore.getStatus();
-          statusEl.textContent = `Core: OK • v${s.version} • ${s.relationship}`;
-          statusEl.classList.add('ok');
+          statusEl.textContent =
+            "Core OK • v" + s.version + " • silent=" + (s.silentMode ? "on" : "off");
+          statusEl.classList.add("ok");
         } else {
-          statusEl.textContent = 'Core: उपलब्ध नहीं';
-          statusEl.classList.add('warn');
+          statusEl.textContent = "Core उपलब्ध नहीं";
+          statusEl.classList.add("warn");
         }
       }
 
       refreshBtn.onclick = refresh;
-      silentBtn.onclick = function(){
-        if (window.AnjaliCore) {
-          AnjaliCore.setSilentMode(!AnjaliCore.state.silentMode);
-          refresh();
-        }
-      };
-
       refresh();
     })();
   </script>
