@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>अंजली</title>
 
   <style>
@@ -32,16 +32,6 @@
       box-shadow:0 14px 30px rgba(0,0,0,.12);
       text-align:center;
     }
-    .title{
-      font-size:26px;
-      color:var(--accent);
-      margin:6px 0 4px;
-    }
-    .subtitle{
-      font-size:14px;
-      color:#555;
-      margin-bottom:14px;
-    }
     .avatar{
       width:84px;
       height:84px;
@@ -53,6 +43,16 @@
       justify-content:center;
       font-size:34px;
     }
+    .title{
+      font-size:26px;
+      color:var(--accent);
+      margin:6px 0 4px;
+    }
+    .subtitle{
+      font-size:14px;
+      color:#555;
+      margin-bottom:16px;
+    }
     .status{
       background:#fff7f4;
       border:1px solid #f3d4c7;
@@ -60,7 +60,7 @@
       padding:10px 12px;
       font-size:13px;
       color:#6b2c2c;
-      margin:10px 0 14px;
+      margin:10px 0 16px;
     }
     .actions{
       display:flex;
@@ -71,7 +71,7 @@
     .btn{
       border:none;
       border-radius:16px;
-      padding:12px 14px;
+      padding:12px 16px;
       font-size:14px;
       cursor:pointer;
       background:linear-gradient(180deg,#c96a6a,#a13f3f);
@@ -83,7 +83,7 @@
       border:1px dashed #e6b2b2;
     }
     .footer{
-      margin-top:14px;
+      margin-top:16px;
       font-size:11px;
       color:#777;
     }
@@ -93,16 +93,16 @@
 <body>
   <main class="card">
     <div class="avatar">🌸</div>
+
     <div class="title">अंजली</div>
     <div class="subtitle">स्नेहपूर्ण • समझदार • मर्यादित</div>
 
     <div class="status" id="appStatus">
-      प्रारंभ हो रहा है…
+      अंजली तैयार है
     </div>
 
     <div class="actions">
       <button class="btn" id="startBtn">शुरू करें</button>
-      <button class="btn secondary" id="silentBtn">मौन मोड</button>
       <button class="btn secondary" id="adminBtn">Admin Panel</button>
     </div>
 
@@ -111,37 +111,31 @@
     </div>
   </main>
 
-  <!-- Core MUST be loaded -->
+  <!-- ================= CORE & SYSTEM (Future Ready) ================= -->
+
+  <!-- Core -->
   <script src="core/AnjaliCore.js"></script>
+  <script src="core/LearningBridge.js"></script>
+  <script src="core/AdminControl.js"></script>
 
-  <!-- Stage-1 Wiring -->
+  <!-- Learning -->
+  <script src="learning/KnowledgeBase.js"></script>
+  <script src="learning/ExperienceMemory.js"></script>
+
+  <!-- Voice -->
+  <script src="voice/tts.js"></script>
+  <script src="voice/stt.js"></script>
+
+  <!-- ================= BASIC PAGE LOGIC ================= -->
   <script>
-    (function(){
-      const status = document.getElementById('appStatus');
+    document.getElementById("startBtn").onclick = function () {
+      document.getElementById("appStatus").textContent =
+        "संवाद प्रारंभ (आगे के चरण में)";
+    };
 
-      if (window.AnjaliCore) {
-        status.textContent = 'अंजली तैयार है';
-      } else {
-        status.textContent = 'Core लोड नहीं हुआ';
-      }
-
-      document.getElementById('startBtn').onclick = function(){
-        status.textContent = 'संवाद प्रारंभ';
-      };
-
-      document.getElementById('silentBtn').onclick = function(){
-        if (window.AnjaliCore) {
-          AnjaliCore.setSilentMode(!AnjaliCore.state.silentMode);
-          status.textContent = AnjaliCore.state.silentMode
-            ? 'मौन मोड सक्रिय'
-            : 'मौन मोड बंद';
-        }
-      };
-
-      document.getElementById('adminBtn').onclick = function(){
-        window.location.href = 'admin.html';
-      };
-    })();
+    document.getElementById("adminBtn").onclick = function () {
+      window.location.href = "admin.html";
+    };
   </script>
 </body>
 </html>
