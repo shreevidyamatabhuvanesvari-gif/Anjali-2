@@ -111,18 +111,20 @@
     </div>
   </main>
 
-  <!-- ================= CORE & SYSTEM ================= -->
-  <script src="core/AnjaliCore.js"></script>
-  <script src="core/LearningBridge.js"></script>
-  <script src="core/AdminControl.js"></script>
+  <!-- Core -->
+<script src="core/AnjaliCore.js"></script>
 
-  <!-- Learning -->
-  <script src="learning/KnowledgeBase.js"></script>
-  <script src="learning/ExperienceMemory.js"></script>
+<!-- Learning (पहले!) -->
+<script src="learning/KnowledgeBase.js"></script>
+<script src="learning/ExperienceMemory.js"></script>
 
-  <!-- Voice -->
-  <script src="voice/tts.js"></script>
-  <script src="voice/stt.js"></script>
+<!-- Bridge (अब dependencies मौजूद हैं) -->
+<script src="core/LearningBridge.js"></script>
+<script src="core/AdminControl.js"></script>
+
+<!-- Voice -->
+<script src="voice/tts.js"></script>
+<script src="voice/stt.js"></script>
 
   <!-- ================= BASIC PAGE LOGIC + STT ================= -->
   <script>
