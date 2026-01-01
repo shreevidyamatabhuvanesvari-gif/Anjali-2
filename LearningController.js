@@ -1,6 +1,5 @@
 // LearningController.js
-// PRIMARY BRAIN ADAPTER
-// GUARANTEE: हमेशा string लौटेगी
+// PRIMARY BRAIN = ReasoningEngine
 
 import { ReasoningEngine } from "./ReasoningEngine.js";
 
@@ -11,12 +10,6 @@ export class LearningController {
   }
 
   learn(input) {
-    const reply = this.brain.think(input);
-
-    if (typeof reply === "string" && reply.trim() !== "") {
-      return reply;
-    }
-
-    return "मैं आपकी बात समझने की कोशिश कर रही हूँ।";
+    return this.brain.think(input);
   }
 }
