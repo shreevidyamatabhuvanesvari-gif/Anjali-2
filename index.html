@@ -112,23 +112,29 @@
   </main>
 
   <!-- Core -->
-<script src="core/AnjaliCore.js"></script>
+  <script src="core/AnjaliCore.js"></script>
 
-<!-- Learning (पहले!) -->
-<script src="learning/KnowledgeBase.js"></script>
-<script src="learning/ExperienceMemory.js"></script>
+  <!-- Learning (पहले!) -->
+  <script src="learning/KnowledgeBase.js"></script>
+  <script src="learning/ExperienceMemory.js"></script>
 
-<!-- Bridge (अब dependencies मौजूद हैं) -->
-<script src="core/LearningBridge.js"></script>
-<script src="core/AdminControl.js"></script>
+  <!-- Bridge (अब dependencies मौजूद हैं) -->
+  <script src="core/LearningBridge.js"></script>
+  <script src="core/AdminControl.js"></script>
 
-<!-- Voice -->
-<script src="voice/tts.js"></script>
-<script src="voice/stt.js"></script>
+  <!-- Voice -->
+  <script src="voice/tts.js"></script>
+  <script src="voice/stt.js"></script>
+
+  <!-- 🔑 Bridge INIT (ONE-TIME, निर्णायक) -->
+  <script>
+    if (window.LearningBridge) {
+      LearningBridge.init();
+    }
+  </script>
 
   <!-- ================= BASIC PAGE LOGIC + STT ================= -->
   <script>
-    // 🔘 START BUTTON → STT शुरू करेगा
     document.getElementById("startBtn").onclick = function () {
       document.getElementById("appStatus").textContent =
         "मैं सुन रही हूँ… कृपया प्रश्न बोलिए";
