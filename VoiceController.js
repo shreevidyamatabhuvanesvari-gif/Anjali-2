@@ -1,82 +1,42 @@
 // VoiceController.js
-// PURPOSE: Browser-safe Voice (Speak + Listen)
-// GUARANTEE:
-// - Mic केवल user gesture से शुरू होगा
-// - कोई silent failure नहीं
-// - कोई auto-restart नहीं
-// - आवाज़ कभी अपने आप बंद नहीं होगी
+// GUARANTEE: आवाज़ हमेशा आएगी (TTS only)
 
 export class VoiceController {
 
-  constructor(onUserSpeech) {
-    this.onUserSpeech = onUserSpeech;
-
-    const SR =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SR) {
-      alert("यह ब्राउज़र वॉइस सपोर्ट नहीं करता");
-      return;
-    }
-
-    this.recognition = new SR();
-    this.recognition.lang = "hi-IN";
-    this.recognition.continuous = false;
-    this.recognition.interimResults = false;
-
+  constructor() {
     this.synth = window.speechSynthesis;
+    this.ready = false;
 
-    this._bind();
-  }
-
-  /* =========================
-     INTERNAL EVENTS
-  ========================= */
-  _bind() {
-
-    this.recognition.onresult = (e) => {
-      const text = e.results[0][0].transcript.trim();
-      if (text && this.onUserSpeech) {
-        this.onUserSpeech(text);
+    // voices लोड होने का इंतज़ार
+    const waitVoices = () => {
+      const voices = this.synth.getVoices();
+      if (voices.length > 0) {
+        this.ready = true;
+      } else {
+        setTimeout(waitVoices, 100);
       }
     };
 
-    this.recognition.onerror = () => {
-      // कोई auto retry नहीं
-    };
-
-    this.recognition.onend = () => {
-      // ❌ यहाँ listen() नहीं बुलाया जाएगा
-    };
+    waitVoices();
   }
 
-  /* =========================
-     SPEAK (SAFE)
-  ========================= */
   speak(text) {
+    if (!this.ready) {
+      console.warn("Voice not ready yet");
+      return;
+    }
+
     if (typeof text !== "string" || text.trim() === "") return;
 
-    if (this.synth.speaking) {
-      this.synth.cancel();
-    }
+    // पहले की आवाज़ रोकें
+    this.synth.cancel();
 
     const u = new SpeechSynthesisUtterance(text);
-    u.lang  = "hi-IN";
-    u.rate  = 0.95;
+    u.lang = "hi-IN";
+    u.rate = 0.95;
     u.pitch = 1.05;
+    u.volume = 1.0;
 
     this.synth.speak(u);
-  }
-
-  /* =========================
-     LISTEN (CRITICAL RULE)
-     ⚠️ इसे केवल BUTTON CLICK से बुलाना है
-  ========================= */
-  listenFromUserGesture() {
-    try {
-      this.recognition.start();
-    } catch (_) {
-      // browser silently blocks if rule violated
-    }
   }
 }
