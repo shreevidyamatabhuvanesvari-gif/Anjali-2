@@ -1,79 +1,85 @@
 // ReasoningEngine.js
-// PRIMARY BRAIN + ANALYSIS
+// ANALYSIS + MEMORY CORE
+// Extremely fast | No loops | Deterministic
 
-import { AnalysisEngine } from "./AnalysisEngine.js";
+import { UltraFastAnalyzer } from "./UltraFastAnalyzer.js";
+import { AnalysisMemoryStore } from "./AnalysisMemoryStore.js";
 
 export class ReasoningEngine {
 
   constructor() {
-    this.analyzer = new AnalysisEngine();
+    this.analyzer = new UltraFastAnalyzer();
+    this.memory   = new AnalysisMemoryStore();
   }
 
   think(input) {
     if (typeof input !== "string") {
-      return "मैं आपकी बात समझ नहीं पाई।";
+      return "मैं समझ नहीं पाई।";
     }
 
     const text = input.trim();
-    if (text === "") {
-      return "आप कुछ कहना चाह रहे हैं।";
-    }
+    if (!text) return "आप कुछ कहना चाह रहे हैं।";
 
     const analysis = this.analyzer.analyze(text);
 
-    /* =========================
+    // स्मृति में दर्ज करें
+    this.memory.remember({
+      type: analysis.type,
+      text: text,
+      time: Date.now()
+    });
+
+    // पिछले संदर्भ
+    const last = this.memory.last();
+
+    /* =====================
        IDENTITY
-    ========================= */
-    if (
-      this.hasAny(text, ["तुम", "आप", "अंजली"]) &&
-      this.hasAny(text, ["कौन", "नाम"])
-    ) {
-      return "मैं अंजली हूँ। मैं सुनती भी हूँ और सोचकर उत्तर देने की कोशिश करती हूँ।";
+    ===================== */
+    if (analysis.type === "IDENTITY") {
+      return "मैं अंजली हूँ। मैं सुनती, सोचती और याद भी रखती हूँ।";
     }
 
-    /* =========================
-       ANALYTICAL WHY
-    ========================= */
-    if (analysis.isWhy) {
+    /* =====================
+       WHY + MEMORY
+    ===================== */
+    if (analysis.type === "WHY") {
       return (
-        "किसी भी कारण को समझने के लिए तीन बातें देखी जाती हैं:\n" +
-        "पहला, परिस्थिति।\n" +
-        "दूसरा, भावनाएँ।\n" +
-        "तीसरा, निर्णय।\n" +
-        "आप किस संदर्भ में पूछ रहे हैं?"
+        "किसी कारण को समझने के लिए हम तीन स्तर देखते हैं:\n" +
+        "स्थिति → भावना → निर्णय।\n" +
+        "आप किस स्थिति के बारे में पूछ रहे हैं?"
       );
     }
 
-    /* =========================
-       EMOTIONAL + ANALYSIS
-    ========================= */
-    if (analysis.isEmotional) {
+    /* =====================
+       EMOTION + CONTEXT
+    ===================== */
+    if (analysis.type === "EMOTION") {
       return (
-        "आप जो महसूस कर रहे हैं, वह किसी स्थिति का परिणाम हो सकता है।\n" +
-        "यदि आप चाहें, तो हम पहले स्थिति समझ सकते हैं और फिर समाधान पर जाएँ।"
+        "आप भावनात्मक स्थिति में हैं।\n" +
+        "अगर चाहें तो हम पहले कारण समझें और फिर समाधान की ओर जाएँ।"
       );
     }
 
-    /* =========================
-       MORAL / DECISION
-    ========================= */
-    if (analysis.isDecision) {
+    /* =====================
+       DECISION
+    ===================== */
+    if (analysis.type === "DECISION") {
       return (
-        "निर्णय लेते समय तीन आधार होते हैं:\n" +
+        "निर्णय के लिए तीन कसौटियाँ होती हैं:\n" +
         "1) आत्मसम्मान\n" +
         "2) दीर्घकालिक परिणाम\n" +
-        "3) किसी को अनावश्यक चोट न पहुँचना\n" +
-        "आप किस निर्णय को लेकर उलझन में हैं?"
+        "3) मन की शांति\n" +
+        "आप किस निर्णय पर अटके हैं?"
       );
     }
 
-    /* =========================
-       DEFAULT
-    ========================= */
-    return "मैं आपकी बात समझने की कोशिश कर रही हूँ। आप थोड़ा और बताएँ।";
-  }
+    /* =====================
+       CONTEXTUAL FOLLOW-UP
+    ===================== */
+    if (last && last.type !== "GENERAL") {
+      return "आप उसी विषय को आगे बढ़ा रहे हैं। थोड़ा और स्पष्ट करें।";
+    }
 
-  hasAny(text, words) {
-    return words.some(w => text.includes(w));
+    return "मैं सुन रही हूँ। आप आगे कह सकते हैं।";
   }
 }
