@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>अंजली — Admin</title>
+
+  <style>
+    :root{
+      --bg:#121212;
+      --panel:#1e1e1e;
+      --accent:#ffb3b3;
+      --soft:#ffd6d6;
+      --ok:#8fd18f;
+      --warn:#ff9f9f;
+      --line:#2e2e2e;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari", Arial, sans-serif;
+      background:var(--bg);
+      color:#eaeaea;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .panel{
+      width:94%;
+      max-width:560px;
+      background:var(--panel);
+      border-radius:18px;
+      padding:18px 16px 20px;
+      box-shadow:0 16px 36px rgba(0,0,0,.45);
+    }
+    .header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--line);
+      padding-bottom:10px;
+      margin-bottom:12px;
+    }
+    .title{
+      font-size:20px;
+      color:var(--accent);
+      letter-spacing:.3px;
+    }
+    .badge{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#2a2a2a;
+      border:1px solid var(--line);
+      color:#cfcfcf;
+    }
+    .section{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      margin-bottom:10px;
+    }
+    .section h3{
+      margin:0 0 8px;
+      font-size:14px;
+      color:var(--soft);
+      font-weight:600;
+    }
+    .row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .btn{
+      border:none;
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:13px;
+      cursor:pointer;
+      color:#1b1b1b;
+      background:linear-gradient(180deg,#ffd6d6,#ffb3b3);
+      box-shadow:0 8px 16px rgba(255,179,179,.25);
+    }
+    .btn.secondary{
+      background:#2a2a2a;
+      color:#f1f1f1;
+      border:1px dashed var(--line);
+      box-shadow:none;
+    }
+    .btn.warn{
+      background:linear-gradient(180deg,#ffb3b3,#ff9f9f);
+    }
+    .status{
+      font-size:12px;
+      padding:8px 10px;
+      border-radius:10px;
+      background:#1a1a1a;
+      border:1px solid var(--line);
+      color:#d8d8d8;
+    }
+    .status.ok{ color:var(--ok); }
+    .status.warn{ color:var(--warn); }
+    .footer{
+      margin-top:6px;
+      font-size:11px;
+      color:#9a9a9a;
+      text-align:right;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="panel">
+    <div class="header">
+      <div class="title">⚙️ अंजली — Admin Panel</div>
+      <div class="badge">Authority • Locked</div>
+    </div>
+
+    <div class="section">
+      <h3>Core Status</h3>
+      <div class="row">
+        <div class="status" id="coreStatus">Core: जाँच जारी…</div>
+        <button class="btn secondary" id="refreshCore">रीफ़्रेश</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Learning Control</h3>
+      <div class="row">
+        <button class="btn" id="openLearningUI">सीखने का बॉक्स</button>
+        <button class="btn secondary" id="viewLearning">सीखा हुआ देखें</button>
+        <button class="btn secondary" id="bulkAdd">Bulk जोड़ें (1000+)</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>System Control</h3>
+      <div class="row">
+        <button class="btn warn" id="toggleSilent">मौन मोड</button>
+        <button class="btn secondary" id="lockLearning">Learning Lock</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      Admin • Stage 3
+    </div>
+  </main>
+
+  <!-- Core -->
+  <script src="core/AnjaliCore.js"></script>
+
+  <!-- Stage-3 Wiring (Minimal, Safe) -->
+  <script>
+    (function(){
+      const statusEl = document.getElementById('coreStatus');
+      const refreshBtn = document.getElementById('refreshCore');
+      const silentBtn = document.getElementById('toggleSilent');
+
+      function refresh(){
+        if (window.AnjaliCore) {
+          const s = AnjaliCore.getStatus();
+          statusEl.textContent = `Core: OK • v${s.version} • ${s.relationship}`;
+          statusEl.classList.add('ok');
+        } else {
+          statusEl.textContent = 'Core: उपलब्ध नहीं';
+          statusEl.classList.add('warn');
+        }
+      }
+
+      refreshBtn.onclick = refresh;
+      silentBtn.onclick = function(){
+        if (window.AnjaliCore) {
+          AnjaliCore.setSilentMode(!AnjaliCore.state.silentMode);
+          refresh();
+        }
+      };
+
+      refresh();
+    })();
+  </script>
+</body>
+</html>
