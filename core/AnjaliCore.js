@@ -1,98 +1,61 @@
 /* =========================================================
    AnjaliCore.js
-   Role: Central Brain (Locked Identity + Control)
-   Stage: 2
+   Role: Central Deterministic Core Controller
    ========================================================= */
 
 (function (window) {
   "use strict";
 
-  // ---- Identity & Locks (DO NOT CHANGE) ----
+  // ---------- Internal State (Authoritative) ----------
+  const state = {
+    version: "1.0.0",
+    name: "Anjali",
+    relationship: "premika",
+    silentMode: false,
+    initialized: false
+  };
+
+  // ---------- Core Object ----------
   const AnjaliCore = {
-    meta: {
-      appName: "अंजली",
-      relationship: "premika",          // Locked relationship
-      personaTraits: [
-        "स्नेह",
-        "विश्वास",
-        "समझ",
-        "सहानुभूति",
-        "सम्मान",
-        "धैर्य",
-        "ईमानदारी",
-        "भावनात्मक स्थिरता",
-        "संवाद-कुशलता",
-        "प्रोत्साहन",
-        "निष्ठा (सीमित)",
-        "मर्यादा"
-      ],
-      adminSupremacy: true,              // Admin > System > User
-      memoryGoalGB: 40,                  // Design target (not LocalStorage)
-      version: "0.2"
+
+    // Initialize core once
+    init() {
+      if (state.initialized) return true;
+      state.initialized = true;
+      return true;
     },
 
-    // ---- Runtime State ----
-    state: {
-      booted: false,
-      silentMode: false,
-      lastStatus: "INIT"
-    },
-
-    // ---- Boot Sequence ----
-    boot() {
-      if (this.state.booted) return;
-      this.state.booted = true;
-      this.state.lastStatus = "BOOT_OK";
-      this.log("🌸 AnjaliCore booted");
-      this.emit("boot");
-    },
-
-    // ---- Status / Control ----
-    setSilentMode(on) {
-      this.state.silentMode = !!on;
-      this.emit("silent", { on: this.state.silentMode });
-      this.log(this.state.silentMode ? "मौन मोड चालू" : "मौन मोड बंद");
-    },
-
+    // Read-only status (for UI/Admin)
     getStatus() {
       return {
-        app: this.meta.appName,
-        relationship: this.meta.relationship,
-        version: this.meta.version,
-        silentMode: this.state.silentMode,
-        lastStatus: this.state.lastStatus
+        version: state.version,
+        name: state.name,
+        relationship: state.relationship,
+        silentMode: state.silentMode,
+        initialized: state.initialized
       };
     },
 
-    // ---- Event Bus (Internal) ----
-    _events: {},
-    on(event, handler) {
-      if (!this._events[event]) this._events[event] = [];
-      this._events[event].push(handler);
-    },
-    emit(event, payload) {
-      (this._events[event] || []).forEach(fn => {
-        try { fn(payload); } catch (e) { console.error(e); }
-      });
+    // Silent mode control
+    setSilentMode(flag) {
+      state.silentMode = !!flag;
+      return state.silentMode;
     },
 
-    // ---- Logging (Centralized) ----
-    log(msg) {
-      // Central place for future logging policies
-      console.log(`[Anjali] ${msg}`);
+    // Simple speak hook (voice layer will attach later)
+    canSpeak() {
+      return !state.silentMode;
     }
   };
 
-  // ---- Auto Boot on DOM Ready ----
-  document.addEventListener("DOMContentLoaded", () => {
-    AnjaliCore.boot();
-  });
-
-  // ---- Expose Globally (Read-Only Reference) ----
+  // ---------- Expose (Immutable) ----------
   Object.defineProperty(window, "AnjaliCore", {
     value: AnjaliCore,
     writable: false,
     configurable: false
   });
+
+  // ---------- Auto-init ----------
+  AnjaliCore.init();
 
 })(window);
