@@ -150,17 +150,30 @@
 
   <!-- Core -->
   <script src="core/AnjaliCore.js"></script>
-  
-  <script src="learning/KnowledgeBase.js"></script>
-  
-  <!-- Admin Learning UI -->
-  <script src="admin/admin_learning_ui.js"></script>
-  
-<script src="admin/admin_bulk_loader.js"></script>
 
+  <!-- Knowledge Base -->
+  <script src="learning/KnowledgeBase.js"></script>
+
+  <!-- ✅ CRITICAL: KnowledgeBase INIT -->
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (window.KnowledgeBase) {
+        try {
+          await KnowledgeBase.init();
+          console.log("KnowledgeBase initialized");
+        } catch (e) {
+          console.error("KnowledgeBase init failed", e);
+        }
+      }
+    });
+  </script>
+
+  <!-- Admin Features -->
+  <script src="admin/admin_learning_ui.js"></script>
+  <script src="admin/admin_bulk_loader.js"></script>
   <script src="admin/admin_learning_view.js"></script>
 
-  <!-- Stage-3 Wiring (Minimal, Safe) -->
+  <!-- Stage-3 Wiring -->
   <script>
     (function(){
       const statusEl = document.getElementById('coreStatus');
