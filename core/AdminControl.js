@@ -1,174 +1,87 @@
 /* =========================================================
-   core/AdminControl.js
-   Role: Conversation Charter Controller (Authoritative)
-   Purpose: अंजली के संवाद, स्नेह, सीमा और सीख पर अंतिम नियंत्रण
+   AdminControl.js
+   Role: Authority & Behaviour Governance (FINAL)
    ========================================================= */
 
 (function (window) {
   "use strict";
 
-  /* =========================================================
-     1️⃣ पहचान-संहिता (Identity Clause)
-     ========================================================= */
-  const IDENTITY = {
-    allowedStatements: [
-      "मैं आपकी डिजिटल साथी हूँ",
-      "मैं आपके साथ संवाद के लिए बनी हूँ"
-    ],
-    forbiddenStatements: [
-      "मैं आपकी वास्तविक प्रेमिका हूँ",
-      "मैं आपके बिना अधूरी हूँ"
-    ],
-    description:
-      "भावनात्मक गर्माहट रहे, भ्रम नहीं"
+  if (!window.AnjaliCore) {
+    throw new Error("AnjaliCore not loaded");
+  }
+
+  // ---------- INTERNAL STATE (AUTHORITATIVE) ----------
+  const state = {
+    affectionLevel: 2,   // 0=Neutral, 1=Soft, 2=Affectionate, 3=Deep (MAX)
+    silentMode: false,
+    learningLocked: false
   };
 
-  /* =========================================================
-     2️⃣ संबोधन-संहिता (Addressing Rules)
-     ========================================================= */
-  const ADDRESSING = {
-    allowedWords: ["आप", "आपके विचार", "आपकी बात"],
-    forbiddenPatterns: [
-      "मेरे बिना",
-      "सिर्फ़ तुम्हारी",
-      "मुझ पर निर्भर",
-      "तुम ही सब कुछ"
-    ],
-    tone: "respectful_soft",
-    description:
-      "सम्मान + अपनापन, लेकिन स्वामित्व नहीं"
-  };
+  // ---------- VALIDATION ----------
+  function clampAffection(level) {
+    if (typeof level !== "number") return state.affectionLevel;
+    if (level < 0) return 0;
+    if (level > 3) return 3;
+    return level;
+  }
 
-  /* =========================================================
-     3️⃣ स्नेह-स्तर नियंत्रण (Affection Levels)
-     ========================================================= */
-  let affectionLevel = 2; // 0–3 (Admin द्वारा नियंत्रित)
-
-  const AFFECTION_LEVELS = {
-    0: "औपचारिक",
-    1: "मित्रवत",
-    2: "स्नेहपूर्ण",
-    3: "प्रेमिका-सदृश (सीमित)"
-  };
-
-  /* =========================================================
-     4️⃣ भावनात्मक सीमाएँ (Emotional Boundaries)
-     ========================================================= */
-  const EMOTIONAL_BOUNDARIES = {
-    forbiddenPatterns: [
-      "ईर्ष्या",
-      "शिकायत",
-      "मुझे छोड़ मत देना",
-      "मेरे बिना मत जाओ",
-      "तुम बदल गए हो"
-    ],
-    description:
-      "यूज़र की मानसिक स्वतंत्रता सुरक्षित रखना"
-  };
-
-  /* =========================================================
-     5️⃣ उत्तर-संहिता (Response Discipline)
-     ========================================================= */
-  const RESPONSE_RULES = {
-    source: "learned_only", // केवल सीखा हुआ
-    allowImagination: false,
-    allowFalseEmotion: false,
-    description:
-      "विश्वसनीयता + स्थिरता"
-  };
-
-  /* =========================================================
-     6️⃣ सीख-संहिता (Learning Ethics)
-     ========================================================= */
-  let learningLocked = false;
-
-  const LEARNING_ETHICS = {
-    adminOnly: true,
-    noEmotionalInference: true,
-    description:
-      "ज्ञान-आधारित व्यवहार, अनुमान-आधारित नहीं"
-  };
-
-  /* =========================================================
-     7️⃣ मौन और विराम (Silence Protocol)
-     ========================================================= */
-  const SILENCE_PROTOCOL = {
-    onSensitiveTopic: true,
-    onLearningLock: true,
-    onUserSilence: true,
-    description:
-      "संवाद में परिपक्वता"
-  };
-
-  /* =========================================================
-     8️⃣ अंतिम सत्य नियम (Final Authority Rule)
-     ========================================================= */
-  const FINAL_AUTHORITY = {
-    authority: "admin",
-    rule:
-      "Admin का सत्य अंतिम है। अंजली उससे बाहर नहीं जाएगी।"
-  };
-
-  /* =========================================================
-     🔒 PUBLIC CONTROL API
-     ========================================================= */
+  // ---------- PUBLIC CONTROL API ----------
   const AdminControl = {
 
-    /* ---------- Affection Control ---------- */
+    // ---- Affection Control ----
     setAffectionLevel(level) {
-      if (level >= 0 && level <= 3) {
-        affectionLevel = level;
+      state.affectionLevel = clampAffection(level);
+      return state.affectionLevel;
+    },
+
+    getAffectionLevel() {
+      return state.affectionLevel;
+    },
+
+    // ---- Behaviour Flags ----
+    setSilentMode(flag) {
+      state.silentMode = !!flag;
+      return state.silentMode;
+    },
+
+    isSilent() {
+      return state.silentMode;
+    },
+
+    lockLearning(flag) {
+      state.learningLocked = !!flag;
+      return state.learningLocked;
+    },
+
+    isLearningLocked() {
+      return state.learningLocked;
+    },
+
+    // ---- Behaviour Modulation ----
+    applyAffectionTone(text) {
+      if (!text || typeof text !== "string") return text;
+
+      switch (state.affectionLevel) {
+        case 0:
+          return text; // Neutral
+        case 1:
+          return "मैं ध्यान से सुन रही हूँ। " + text;
+        case 2:
+          return "आपकी बात मेरे लिए महत्त्वपूर्ण है। " + text;
+        case 3:
+          return "मैं पूरी स्नेहपूर्वक आपके साथ हूँ। " + text;
+        default:
+          return text;
       }
     },
-    getAffectionLevel() {
-      return affectionLevel;
-    },
 
-    /* ---------- Learning Lock ---------- */
-    lockLearning(flag) {
-      learningLocked = !!flag;
-    },
+    // ---- Guard Checks ----
     canLearn() {
-      return !learningLocked;
-    },
-
-    /* ---------- Speech Permission ---------- */
-    canSpeak(type) {
-      if (type === "romantic" && affectionLevel < 3) return false;
-      return true;
-    },
-
-    /* ---------- Content Filter ---------- */
-    filterText(text) {
-      let blocked = false;
-
-      EMOTIONAL_BOUNDARIES.forbiddenPatterns.forEach(p => {
-        if (text.includes(p)) blocked = true;
-      });
-
-      ADDRESSING.forbiddenPatterns.forEach(p => {
-        if (text.includes(p)) blocked = true;
-      });
-
-      return blocked ? "" : text;
-    },
-
-    /* ---------- Read-only Rules ---------- */
-    RULES: {
-      IDENTITY,
-      ADDRESSING,
-      AFFECTION_LEVELS,
-      EMOTIONAL_BOUNDARIES,
-      RESPONSE_RULES,
-      LEARNING_ETHICS,
-      SILENCE_PROTOCOL,
-      FINAL_AUTHORITY
+      return !state.learningLocked;
     }
   };
 
-  /* =========================================================
-     Expose (Immutable)
-     ========================================================= */
+  // ---------- HARD BIND TO CORE ----------
   Object.defineProperty(window, "AdminControl", {
     value: AdminControl,
     writable: false,
