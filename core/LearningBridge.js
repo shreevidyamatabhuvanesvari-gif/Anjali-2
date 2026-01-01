@@ -1,40 +1,44 @@
 /* =========================================================
    LearningBridge.js
-   Role: Deterministic Bridge between Core, Knowledge & Experience
+   Role: Deterministic Bridge between Question, Knowledge & Voice
    ========================================================= */
 
 (function (window) {
   "use strict";
 
-  if (!window.AnjaliCore) {
-    throw new Error("AnjaliCore not loaded");
-  }
+  // ---------- Dependency Check ----------
   if (!window.KnowledgeBase) {
-    throw new Error("KnowledgeBase not loaded");
+    throw new Error("LearningBridge: KnowledgeBase not loaded");
   }
   if (!window.ExperienceMemory) {
-    throw new Error("ExperienceMemory not loaded");
+    throw new Error("LearningBridge: ExperienceMemory not loaded");
+  }
+  if (!window.TTS) {
+    throw new Error("LearningBridge: TTS not loaded");
   }
 
-  // ---------- Bridge ----------
+  // ---------- Bridge Object ----------
   const LearningBridge = {
 
-    // Ensure all layers are ready
+    // ---------- Init ----------
     async init() {
       await KnowledgeBase.init();
       await ExperienceMemory.init();
       return true;
     },
 
-    // ---------- Knowledge ----------
+    // ---------- Learn (Admin side) ----------
     async learnQA({ question, answer, tags = [] }) {
       if (!question || !answer) {
         throw new Error("Invalid QA");
       }
-      // Persist knowledge
-      await KnowledgeBase.saveOne({ question, answer, tags });
 
-      // Record experience of learning
+      await KnowledgeBase.saveOne({
+        question: question.trim(),
+        answer: answer.trim(),
+        tags
+      });
+
       await ExperienceMemory.save({
         type: "learn_qa",
         payload: { question, tags }
@@ -43,24 +47,60 @@
       return true;
     },
 
-    // ---------- Experience ----------
-    async recordInteraction({ intent, data = {} }) {
-      if (!intent) {
-        throw new Error("Invalid interaction");
+    // ---------- Answer Question (USER SIDE) ----------
+    async answerQuestion(questionText) {
+      if (!questionText || typeof questionText !== "string") {
+        const msg = "प्रश्न समझ में नहीं आया।";
+        TTS.speak(msg);
+        return msg;
       }
+
+      const question = questionText.trim();
+
+      // Load all learned knowledge
+      const allKnowledge = await KnowledgeBase.getAll();
+
+      let matched = null;
+
+      // Deterministic matching (no AI, no guess)
+      for (const item of allKnowledge) {
+        if (
+          item.question &&
+          question.includes(item.question.trim())
+        ) {
+          matched = item;
+          break;
+        }
+      }
+
+      let answer;
+      if (matched) {
+        answer = matched.answer;
+      } else {
+        answer = "इस प्रश्न का उत्तर अभी मुझे सिखाया नहीं गया है।";
+      }
+
+      // Record interaction
       await ExperienceMemory.save({
-        type: "interaction",
-        payload: { intent, data }
+        type: "question_answered",
+        payload: {
+          question,
+          answered: !!matched
+        }
       });
-      return true;
+
+      // Speak answer
+      TTS.speak(answer);
+
+      return answer;
     },
 
-    // ---------- Read ----------
-    async getKnowledge() {
+    // ---------- Utilities ----------
+    async getAllKnowledge() {
       return KnowledgeBase.getAll();
     },
 
-    async getExperiences() {
+    async getAllExperiences() {
       return ExperienceMemory.getAll();
     }
   };
