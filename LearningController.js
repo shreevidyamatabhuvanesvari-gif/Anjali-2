@@ -1,9 +1,8 @@
 // LearningController.js
-// PRIMARY BRAIN: ReasoningEngine
-// GUARANTEE:
-// - हर बार string return
-// - Reasoning पहले, fallback बाद में
-// - Voice-safe, no async, no silent fail
+// FINAL KERNEL
+// Responsibility: ReasoningEngine को PRIMARY बनाना
+// GUARANTEE: learn() हमेशा string लौटाएगा
+// Voice-safe | No async | No storage
 
 import { ReasoningEngine } from "./ReasoningEngine.js";
 
@@ -13,30 +12,21 @@ export class LearningController {
     this.reasoner = new ReasoningEngine();
   }
 
-  /* =====================================================
-     MAIN ENTRY (VOICE → BRAIN)
-  ===================================================== */
   learn(input) {
-
-    // 🔒 Absolute Voice Safety
+    // 🔒 Absolute safety
     if (typeof input !== "string") {
-      return "मैं आपकी बात स्पष्ट नहीं सुन पाई। कृपया फिर से कहिए।";
+      return "मैं आपकी बात समझ नहीं पाई।";
     }
 
-    const text = input.trim();
+    // 🧠 PRIMARY: Reasoning
+    const response = this.reasoner.think(input);
 
-    if (text === "") {
-      return "आप कुछ कहना चाह रहे हैं। मैं सुन रही हूँ।";
+    // 🔐 Final guard
+    if (typeof response === "string" && response.trim() !== "") {
+      return response;
     }
 
-    // 🧠 STEP–1: THINK FIRST (PRIMARY)
-    const thought = this.reasoner.think(text);
-
-    if (typeof thought === "string" && thought.trim() !== "") {
-      return thought;
-    }
-
-    // 🛟 STEP–2: अंतिम सुरक्षित fallback (कभी नहीं टूटेगा)
-    return "मैं आपकी बात समझने की कोशिश कर रही हूँ। आप थोड़ा और बताइए।";
+    // ❗ यह लाइन practically नहीं पहुँचेगी
+    return "मैं आपकी बात समझने की कोशिश कर रही हूँ।";
   }
 }
