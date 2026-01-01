@@ -1,75 +1,71 @@
 // VoiceController.js
-// FINAL, VOICE-SAFE, BROWSER-CORRECT
+// FINAL VOICE FIX
+// Rule: Mic starts ONLY from user gesture
 
 export class VoiceController {
 
   constructor(onUserSpeech) {
     this.onUserSpeech = onUserSpeech;
 
-    const SR =
+    const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SR) {
+    if (!SpeechRecognition) {
       alert("आपका ब्राउज़र वॉइस सपोर्ट नहीं करता");
       return;
     }
 
-    this.recognition = new SR();
+    this.recognition = new SpeechRecognition();
     this.recognition.lang = "hi-IN";
     this.recognition.continuous = false;
     this.recognition.interimResults = false;
 
     this.synth = window.speechSynthesis;
-
-    this.listening = false;
+    this.isListening = false;
 
     this._bind();
   }
 
   _bind() {
     this.recognition.onresult = (e) => {
-      this.listening = false;
+      this.isListening = false;
       const text = e.results[0][0].transcript.trim();
       this.onUserSpeech(text);
     };
 
     this.recognition.onerror = () => {
-      this.listening = false;
+      this.isListening = false;
     };
 
     this.recognition.onend = () => {
-      this.listening = false;
+      this.isListening = false;
     };
   }
 
   speak(text) {
     if (typeof text !== "string" || text.trim() === "") return;
 
-    this.synth.cancel();
+    if (this.synth.speaking) {
+      this.synth.cancel();
+    }
 
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "hi-IN";
     u.rate = 0.95;
     u.pitch = 1.05;
 
-    // 🔑 यही निर्णायक लाइन है
-    u.onend = () => {
-      this._startListeningSafely();
-    };
-
     this.synth.speak(u);
   }
 
-  _startListeningSafely() {
-    if (this.listening) return;
+  // ⚠️ Mic start ONLY from button click
+  listen() {
+    if (this.isListening) return;
 
     try {
-      this.listening = true;
+      this.isListening = true;
       this.recognition.start();
-    } catch {
-      this.listening = false;
+    } catch (_) {
+      this.isListening = false;
     }
   }
-
-  // 🔒 बाहरी listen() की ज़रूरत नहीं
 }
