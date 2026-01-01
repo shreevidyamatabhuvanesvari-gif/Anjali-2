@@ -92,7 +92,7 @@
 
 <body>
   <main class="card">
-    <div class="avatar">🌸</div>
+    <div class="avatar">🤱</div>
 
     <div class="title">अंजली</div>
     <div class="subtitle">स्नेहपूर्ण • समझदार • मर्यादित</div>
@@ -111,44 +111,53 @@
     </div>
   </main>
 
-  <!-- Core -->
+  <!-- ================= CORE ================= -->
   <script src="core/AnjaliCore.js"></script>
 
-  <!-- Learning -->
+  <!-- ================= LEARNING ================= -->
   <script src="learning/KnowledgeBase.js"></script>
   <script src="learning/ExperienceMemory.js"></script>
 
-  <!-- Bridge -->
+  <!-- ================= BRIDGE ================= -->
   <script src="core/LearningBridge.js"></script>
   <script src="core/AdminControl.js"></script>
 
-  <!-- Voice -->
+  <!-- ================= VOICE ================= -->
   <script src="voice/tts.js"></script>
   <script src="voice/stt.js"></script>
 
-  <!-- 🔑 Bridge INIT (ONE-TIME) -->
+  <!-- ================= INIT (ONE TIME ONLY) ================= -->
   <script>
     if (window.LearningBridge) {
       LearningBridge.init();
     }
   </script>
 
-  <!-- ================= BASIC PAGE LOGIC + STT ================= -->
+  <!-- ================= MAIN LOGIC (FINAL FIX) ================= -->
   <script>
+    let audioUnlocked = false;
+
     document.getElementById("startBtn").onclick = function () {
 
       document.getElementById("appStatus").textContent =
         "मैं सुन रही हूँ… कृपया प्रश्न बोलिए";
 
-      // 🔴 यही जोड़ा गया भाग (निर्णायक)
+      /* 🔓 STEP 1: Audio unlock (ONLY ONCE) */
+      if (window.TTS && !audioUnlocked) {
+        TTS.init();
+        audioUnlocked = true;
+      }
+
+      /* 🔊 STEP 2: Speak first */
       if (window.TTS) {
-        TTS.init();                 // 🔓 Mobile Chrome audio unlock
         TTS.speak("मैं सुन रही हूँ।");
       }
 
-      // 🎤 अब STT शुरू
+      /* 🎤 STEP 3: Start STT AFTER TTS */
       if (window.STT) {
-        STT.start();
+        setTimeout(function () {
+          STT.start();
+        }, 800);
       }
     };
 
@@ -156,5 +165,6 @@
       window.location.href = "admin.html";
     };
   </script>
+
 </body>
 </html>
