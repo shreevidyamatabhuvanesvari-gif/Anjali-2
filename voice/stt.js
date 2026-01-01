@@ -1,6 +1,6 @@
 /* =========================================================
    stt.js
-   Role: Speech To Text (Deterministic, Browser Native)
+   Role: Speech To Text → Question → LearningBridge
    ========================================================= */
 
 (function (window) {
@@ -10,95 +10,48 @@
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    throw new Error("SpeechRecognition not supported");
+    console.warn("STT not supported in this browser");
+    return;
   }
 
-  let recognition = null;
-  let listening = false;
+  const recognition = new SpeechRecognition();
+  recognition.lang = "hi-IN";
+  recognition.continuous = false;
+  recognition.interimResults = false;
 
-  const STT = {
+  recognition.onresult = async function (event) {
+    const transcript = event.results[0][0].transcript.trim();
 
-    // ---------- Start Listening ----------
-    start(options = {}) {
-      if (listening) return false;
+    console.log("STT heard:", transcript);
 
-      recognition = new SpeechRecognition();
+    // 🔑 यही सबसे ज़रूरी लाइन है
+    if (window.LearningBridge) {
+      await LearningBridge.answerQuestion(transcript);
+    } else if (window.TTS) {
+      TTS.speak("मुझे अभी उत्तर देने की व्यवस्था नहीं मिली है।");
+    }
+  };
 
-      // Deterministic defaults
-      recognition.lang = options.lang || "hi-IN";
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      recognition.continuous = false;
-
-      listening = true;
-
-      recognition.onend = function () {
-        listening = false;
-      };
-
-      recognition.onerror = function () {
-        listening = false;
-      };
-
-      recognition.start();
-      return true;
-    },
-
-    // ---------- Stop Listening ----------
-    stop() {
-      if (recognition && listening) {
-        recognition.stop();
-      }
-      listening = false;
-      return true;
-    },
-
-    // ---------- One-shot Listen ----------
-    listenOnce(options = {}) {
-      return new Promise((resolve, reject) => {
-        if (listening) {
-          reject(new Error("Already listening"));
-          return;
-        }
-
-        recognition = new SpeechRecognition();
-
-        recognition.lang = options.lang || "hi-IN";
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-        recognition.continuous = false;
-
-        recognition.onresult = function (event) {
-          const transcript = event.results[0][0].transcript;
-          listening = false;
-          resolve(transcript);
-        };
-
-        recognition.onerror = function (event) {
-          listening = false;
-          reject(event.error);
-        };
-
-        recognition.onend = function () {
-          listening = false;
-        };
-
-        listening = true;
-        recognition.start();
-      });
-    },
-
-    // ---------- Status ----------
-    isListening() {
-      return listening;
+  recognition.onerror = function () {
+    if (window.TTS) {
+      TTS.speak("मैं आपकी आवाज़ ठीक से सुन नहीं पाई।");
     }
   };
 
   // ---------- Expose ----------
   Object.defineProperty(window, "STT", {
-    value: STT,
-    writable: false,
-    configurable: false
+    value: {
+      start() {
+        recognition.start();
+        if (window.TTS) {
+          TTS.speak("मैं सुन रही हूँ। कृपया प्रश्न बोलिए।");
+        }
+      },
+      stop() {
+        recognition.stop();
+      }
+    },
+    writable: false
   });
 
 })(window);
