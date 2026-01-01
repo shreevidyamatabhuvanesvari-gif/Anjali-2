@@ -1,7 +1,7 @@
 /* =========================================================
    admin_bulk_loader.js
    Role: Bulk Learning Loader (1000+ QnA)
-   Stage: 5 (Fixed – REAL SAVE + INIT)
+   Stage: 5 (FINAL – Stable, IndexedDB Safe)
    ========================================================= */
 
 (function () {
@@ -84,47 +84,40 @@
     modal.style.display = "none";
   };
 
-  // ---- REAL PROCESS + SAVE (WITH INIT) ----
+  // ---- FINAL: PROCESS + SAVE (NO GUESS) ----
   document.getElementById("bulkProcess").onclick = async () => {
     const info = document.getElementById("bulkInfo");
 
-    if (!window.KnowledgeBase) {
-      info.style.color = "#ff9f9f";
-      info.textContent = "KnowledgeBase उपलब्ध नहीं है।";
-      return;
-    }
-
     try {
-      // 🔒 सुनिश्चित करें कि DB initialized है
+      if (!window.KnowledgeBase) {
+        throw new Error("KnowledgeBase not loaded");
+      }
+
+      // 🔒 सुनिश्चित DB ready है
       await KnowledgeBase.init();
-    } catch (e) {
-      info.style.color = "#ff9f9f";
-      info.textContent = "KnowledgeBase init असफल।";
-      return;
-    }
 
-    const raw = document.getElementById("bulkInput").value.trim();
-    if (!raw) {
-      info.style.color = "#ff9f9f";
-      info.textContent = "कोई डेटा नहीं मिला।";
-      return;
-    }
+      const raw = document.getElementById("bulkInput").value.trim();
+      if (!raw) {
+        info.style.color = "#ff9f9f";
+        info.textContent = "कोई डेटा नहीं मिला।";
+        return;
+      }
 
-    // Parse blocks
-    const records = KnowledgeBase.parseBulk(raw);
-    if (!records.length) {
-      info.style.color = "#ff9f9f";
-      info.textContent = "मान्य प्रश्न–उत्तर नहीं मिले।";
-      return;
-    }
+      const records = KnowledgeBase.parseBulk(raw);
+      if (!records.length) {
+        info.style.color = "#ff9f9f";
+        info.textContent = "मान्य प्रश्न–उत्तर नहीं मिले।";
+        return;
+      }
 
-    try {
       const saved = await KnowledgeBase.saveBulk(records);
+
       info.style.color = "#9fdf9f";
       info.textContent =
         `स्थायी रूप से सेव किए गए प्रश्न–उत्तर: ${saved}`;
-    } catch (e) {
-      console.error(e);
+
+    } catch (err) {
+      console.error(err);
       info.style.color = "#ff9f9f";
       info.textContent = "Bulk सेव करने में त्रुटि हुई।";
     }
