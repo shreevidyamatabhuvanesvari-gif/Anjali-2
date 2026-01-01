@@ -111,9 +111,7 @@
     </div>
   </main>
 
-  <!-- ================= CORE & SYSTEM (Future Ready) ================= -->
-
-  <!-- Core -->
+  <!-- ================= CORE & SYSTEM ================= -->
   <script src="core/AnjaliCore.js"></script>
   <script src="core/LearningBridge.js"></script>
   <script src="core/AdminControl.js"></script>
@@ -126,12 +124,21 @@
   <script src="voice/tts.js"></script>
   <script src="voice/stt.js"></script>
 
-  <!-- ================= BASIC PAGE LOGIC ================= -->
+  <!-- ================= BASIC PAGE LOGIC + VOICE TEST ================= -->
   <script>
-    document.getElementById("startBtn").onclick = function () {
+    document.getElementById("startBtn").addEventListener("click", function () {
+
+      // UI status
       document.getElementById("appStatus").textContent =
-        "संवाद प्रारंभ (आगे के चरण में)";
-    };
+        "संवाद प्रारंभ (आवाज़ परीक्षण)";
+
+      // 🔊 DIRECT, GUARANTEED TTS CALL (User Gesture Bound)
+      const u = new SpeechSynthesisUtterance(
+        "यह अंतिम परीक्षण है। यदि अब भी आवाज़ नहीं आई, तो ब्राउज़र ने आवाज़ को पूरी तरह ब्लॉक कर दिया है।"
+      );
+      u.lang = "hi-IN";
+      window.speechSynthesis.speak(u);
+    });
 
     document.getElementById("adminBtn").onclick = function () {
       window.location.href = "admin.html";
