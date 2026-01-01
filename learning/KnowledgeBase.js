@@ -1,7 +1,6 @@
 /* =========================================================
    KnowledgeBase.js
-   Role: Single Source IndexedDB Controller (AUTHORITATIVE)
-   Environment: HTTPS (GitHub Pages Compatible)
+   Role: Single Source IndexedDB Controller
    ========================================================= */
 
 (function (window) {
@@ -12,9 +11,8 @@
   const STORE = "qa_store";
 
   let db = null;
-  let opening = null; // 🔒 prevents parallel opens
+  let opening = null;
 
-  // ---------- OPEN DB (SERIALIZED) ----------
   function openDB() {
     if (db) return Promise.resolve(db);
     if (opening) return opening;
@@ -25,11 +23,10 @@
       req.onupgradeneeded = (e) => {
         const d = e.target.result;
         if (!d.objectStoreNames.contains(STORE)) {
-          const s = d.createObjectStore(STORE, {
+          d.createObjectStore(STORE, {
             keyPath: "id",
             autoIncrement: true
           });
-          s.createIndex("time", "time", { unique: false });
         }
       };
 
@@ -44,18 +41,16 @@
     return opening;
   }
 
-  // ---------- TRANSACTION HELPER ----------
   async function withStore(mode, fn) {
     const d = await openDB();
     return new Promise((resolve, reject) => {
       const tx = d.transaction(STORE, mode);
       const store = tx.objectStore(STORE);
-      fn(store, resolve, reject);
+      fn(store, resolve);
       tx.onerror = () => reject(tx.error);
     });
   }
 
-  // ---------- API ----------
   const KnowledgeBase = {
 
     async init() {
@@ -63,63 +58,67 @@
       return true;
     },
 
-    // ---- SAVE ONE (SAFE) ----
-    async saveOne(rec) {
-      return withStore("readwrite", (store, resolve) => {
+    async saveOne({ question, answer, tags = [] }) {
+      return withStore("readwrite", (store, done) => {
         store.add({
-          question: rec.question,
-          answer: rec.answer,
-          tags: rec.tags || [],
+          question,
+          answer,
+          tags,
           time: Date.now()
         });
-        resolve(true);
+        done(true);
       });
     },
 
-    // ---- SAVE BULK (CHUNKED + SERIAL) ----
-    async saveBulk(records) {
-      const CHUNK = 25;
+    async saveBulk(records = []) {
       let saved = 0;
-
-      for (let i = 0; i < records.length; i += CHUNK) {
-        const batch = records.slice(i, i + CHUNK);
-
-        await withStore("readwrite", (store, resolve) => {
-          batch.forEach(r => {
-            store.add({
-              question: r.question,
-              answer: r.answer,
-              tags: r.tags || [],
-              time: Date.now()
-            });
-          });
-          saved += batch.length;
-          resolve();
-        });
+      for (const r of records) {
+        await this.saveOne(r);
+        saved++;
       }
       return saved;
     },
 
-    // ---- READ ALL (VIEW) ----
+    // ✅ REQUIRED & FIXED
+    parseBulk(rawText) {
+      const blocks = rawText.split(/\n\s*\n/);
+      const out = [];
+
+      blocks.forEach(b => {
+        const q = b.match(/Q:\s*([\s\S]+?)(?:\n|$)/i);
+        const a = b.match(/A:\s*([\s\S]+?)(?:\n|$)/i);
+        const t = b.match(/TAGS:\s*([\s\S]+)/i);
+
+        if (q && a) {
+          out.push({
+            question: q[1].trim(),
+            answer: a[1].trim(),
+            tags: t
+              ? t[1].split(",").map(s => s.trim()).filter(Boolean)
+              : []
+          });
+        }
+      });
+
+      return out;
+    },
+
     async getAll() {
-      return withStore("readonly", (store, resolve) => {
-        const out = [];
+      return withStore("readonly", (store, done) => {
+        const all = [];
         store.openCursor().onsuccess = (e) => {
           const c = e.target.result;
           if (c) {
-            out.push(c.value);
+            all.push(c.value);
             c.continue();
           } else {
-            resolve(out);
+            done(all);
           }
         };
       });
     }
   };
 
-  Object.defineProperty(window, "KnowledgeBase", {
-    value: KnowledgeBase,
-    writable: false
-  });
+  window.KnowledgeBase = KnowledgeBase;
 
 })(window);
