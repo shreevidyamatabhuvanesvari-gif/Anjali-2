@@ -1,44 +1,43 @@
 /* =========================================================
    KnowledgeBase.js
-   Role: Deterministic IndexedDB Storage (Single Source)
+   Role: Deterministic IndexedDB (Clean Reset + Stable Save)
    ========================================================= */
 
 (function (window) {
   "use strict";
 
   const DB_NAME = "AnjaliKnowledgeDB";
-  const DB_VERSION = 1;
   const STORE_NAME = "qa_store";
+  const DB_VERSION = 2; // 🔑 version bump forces clean rebuild
 
   let db = null;
 
-  // ---------- Open DB ----------
+  // ---------- Open DB (Clean) ----------
   function openDB() {
     return new Promise((resolve, reject) => {
-      if (db) {
-        resolve(db);
-        return;
-      }
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
 
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onupgradeneeded = function (e) {
+      req.onupgradeneeded = function (e) {
         const d = e.target.result;
-        if (!d.objectStoreNames.contains(STORE_NAME)) {
-          d.createObjectStore(STORE_NAME, {
-            keyPath: "id",
-            autoIncrement: true
-          });
+
+        // 🔥 FORCE CLEAN
+        if (d.objectStoreNames.contains(STORE_NAME)) {
+          d.deleteObjectStore(STORE_NAME);
         }
+
+        d.createObjectStore(STORE_NAME, {
+          keyPath: "id",
+          autoIncrement: true
+        });
       };
 
-      request.onsuccess = function (e) {
+      req.onsuccess = function (e) {
         db = e.target.result;
         resolve(db);
       };
 
-      request.onerror = function () {
-        reject(request.error);
+      req.onerror = function () {
+        reject(req.error);
       };
     });
   }
@@ -98,7 +97,6 @@
     });
   }
 
-  // ---------- Public API ----------
   const KnowledgeBase = {
     init: openDB,
     saveOne: saveOne,
@@ -107,8 +105,7 @@
 
   Object.defineProperty(window, "KnowledgeBase", {
     value: KnowledgeBase,
-    writable: false,
-    configurable: false
+    writable: false
   });
 
 })(window);
