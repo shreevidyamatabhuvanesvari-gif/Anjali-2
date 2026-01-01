@@ -1,18 +1,13 @@
 // AnjaliCoreBridge.js
-// FINAL VOICE FIX – COMPLETE LOOP
+// GUARANTEE: बटन दबाते ही आवाज़ आएगी
 
 import { VoiceController } from "./VoiceController.js";
 import { LearningController } from "./LearningController.js";
 
+const voice   = new VoiceController();
 const learner = new LearningController();
 
-const voice = new VoiceController((userText) => {
-  const reply = learner.learn(userText);
-  voice.speak(reply);
-});
-
-// 🔑 यही एकमात्र जगह है जहाँ Mic start होगा
 document.getElementById("startTalk").addEventListener("click", () => {
-  voice.speak("नमस्ते, मैं अंजली हूँ। आप बोल सकते हैं।");
-  voice.listen(); // ✅ user gesture → browser allows mic
+  const reply = learner.learn("नमस्ते");
+  voice.speak(reply);
 });
