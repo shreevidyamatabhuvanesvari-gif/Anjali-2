@@ -114,11 +114,11 @@
   <!-- Core -->
   <script src="core/AnjaliCore.js"></script>
 
-  <!-- Learning (पहले!) -->
+  <!-- Learning -->
   <script src="learning/KnowledgeBase.js"></script>
   <script src="learning/ExperienceMemory.js"></script>
 
-  <!-- Bridge (अब dependencies मौजूद हैं) -->
+  <!-- Bridge -->
   <script src="core/LearningBridge.js"></script>
   <script src="core/AdminControl.js"></script>
 
@@ -126,7 +126,7 @@
   <script src="voice/tts.js"></script>
   <script src="voice/stt.js"></script>
 
-  <!-- 🔑 Bridge INIT (ONE-TIME, निर्णायक) -->
+  <!-- 🔑 Bridge INIT (ONE-TIME) -->
   <script>
     if (window.LearningBridge) {
       LearningBridge.init();
@@ -136,13 +136,19 @@
   <!-- ================= BASIC PAGE LOGIC + STT ================= -->
   <script>
     document.getElementById("startBtn").onclick = function () {
+
       document.getElementById("appStatus").textContent =
         "मैं सुन रही हूँ… कृपया प्रश्न बोलिए";
 
+      // 🔴 यही जोड़ा गया भाग (निर्णायक)
+      if (window.TTS) {
+        TTS.init();                 // 🔓 Mobile Chrome audio unlock
+        TTS.speak("मैं सुन रही हूँ।");
+      }
+
+      // 🎤 अब STT शुरू
       if (window.STT) {
         STT.start();
-      } else if (window.TTS) {
-        TTS.speak("मुझे सुनने की सुविधा उपलब्ध नहीं है।");
       }
     };
 
