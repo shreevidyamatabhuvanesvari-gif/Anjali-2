@@ -3,7 +3,7 @@
    Role: Single Learning UI (Admin)
    ========================================================= */
 
-(function () {
+document.addEventListener("DOMContentLoaded", function () {
   "use strict";
 
   // ---------- Create Modal ----------
@@ -74,24 +74,22 @@
 
   // ---------- Open Modal ----------
   const openBtn = document.getElementById("openLearningUI");
-  if (openBtn) {
-    openBtn.onclick = () => {
-      modal.style.display = "flex";
-      document.getElementById("learnMsg").textContent = "";
-    };
-  }
+  openBtn.onclick = function () {
+    modal.style.display = "flex";
+    document.getElementById("learnMsg").textContent = "";
+  };
 
   // ---------- Close Modal ----------
-  modal.addEventListener("click", (e) => {
+  modal.addEventListener("click", function (e) {
     if (e.target === modal) modal.style.display = "none";
   });
 
-  document.getElementById("learnCancel").onclick = () => {
+  document.getElementById("learnCancel").onclick = function () {
     modal.style.display = "none";
   };
 
-  // ---------- Save (Deterministic) ----------
-  document.getElementById("learnSave").onclick = async () => {
+  // ---------- Save ----------
+  document.getElementById("learnSave").onclick = async function () {
     const msg = document.getElementById("learnMsg");
 
     if (!window.KnowledgeBase) {
@@ -116,16 +114,14 @@
     try {
       await KnowledgeBase.saveOne({ question, answer, tags });
       msg.style.color = "#9fdf9f";
-      msg.textContent = "प्रश्न–उत्तर स्थायी रूप से सेव हो गया।";
+      msg.textContent = "प्रश्न–उत्तर सेव हो गया।";
 
       document.getElementById("learnQuestion").value = "";
       document.getElementById("learnAnswer").value = "";
       document.getElementById("learnTags").value = "";
-
     } catch (e) {
       msg.style.color = "#ff9f9f";
       msg.textContent = "सेव करने में त्रुटि हुई।";
     }
   };
-
-})();
+});
