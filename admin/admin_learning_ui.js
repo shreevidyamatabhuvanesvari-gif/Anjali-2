@@ -1,7 +1,7 @@
 /* =========================================================
    admin_learning_ui.js
-   Role: Admin Learning Box (UI only)
-   Stage: 4
+   Role: Admin Learning Box (REAL Save via KnowledgeBase)
+   Stage: 4 (Fixed)
    ========================================================= */
 
 (function () {
@@ -37,21 +37,23 @@
 
       <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end;">
         <button id="learnCancel" style="
-          padding:10px 12px; border-radius:12px; background:#2a2a2a; color:#eee; border:1px solid #333;
+          padding:10px 12px; border-radius:12px;
+          background:#2a2a2a; color:#eee; border:1px solid #333;
         ">रद्द</button>
         <button id="learnSave" style="
-          padding:10px 12px; border-radius:12px; background:linear-gradient(180deg,#ffd6d6,#ffb3b3);
+          padding:10px 12px; border-radius:12px;
+          background:linear-gradient(180deg,#ffd6d6,#ffb3b3);
           color:#1b1b1b; border:none;
         ">सेव करें</button>
       </div>
 
-      <div id="learnMsg" style="margin-top:8px; font-size:12px; color:#9fdf9f;"></div>
+      <div id="learnMsg" style="margin-top:8px; font-size:12px;"></div>
     </div>
   `;
 
   document.body.appendChild(modal);
 
-  // --- Open / Close Handlers ---
+  // --- Open / Close ---
   const openBtn = document.getElementById("openLearningUI");
   if (openBtn) {
     openBtn.addEventListener("click", () => {
@@ -68,29 +70,45 @@
     modal.style.display = "none";
   };
 
-  // --- Save (UI-only; storage will be wired in KnowledgeBase.js) ---
-  document.getElementById("learnSave").onclick = () => {
+  // --- REAL SAVE (IndexedDB via KnowledgeBase) ---
+  document.getElementById("learnSave").onclick = async () => {
+    const msg = document.getElementById("learnMsg");
+
+    if (!window.KnowledgeBase) {
+      msg.style.color = "#ff9f9f";
+      msg.textContent = "KnowledgeBase उपलब्ध नहीं है।";
+      return;
+    }
+
     const data = {
       subject: document.getElementById("learnSubject").value.trim(),
       topic: document.getElementById("learnTopic").value.trim(),
       question: document.getElementById("learnQuestion").value.trim(),
       answer: document.getElementById("learnAnswer").value.trim(),
-      tags: document.getElementById("learnTags").value.split(",").map(s=>s.trim()).filter(Boolean),
-      time: Date.now()
+      tags: document.getElementById("learnTags").value
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
     };
 
     if (!data.subject || !data.question || !data.answer) {
-      document.getElementById("learnMsg").style.color = "#ff9f9f";
-      document.getElementById("learnMsg").textContent = "विषय, प्रश्न और उत्तर अनिवार्य हैं।";
+      msg.style.color = "#ff9f9f";
+      msg.textContent = "विषय, प्रश्न और उत्तर अनिवार्य हैं।";
       return;
     }
 
-    // अभी केवल पुष्टि (स्टोरेज अगली फाइल में जुड़ेगा)
-    document.getElementById("learnMsg").style.color = "#9fdf9f";
-    document.getElementById("learnMsg").textContent = "सीख सुरक्षित की गई (UI Ready).";
+    try {
+      await KnowledgeBase.saveOne(data);
+      msg.style.color = "#9fdf9f";
+      msg.textContent = "प्रश्न–उत्तर स्थायी रूप से सेव हो गया।";
 
-    // Clear minimal
-    document.getElementById("learnQuestion").value = "";
-    document.getElementById("learnAnswer").value = "";
+      // Clear fields
+      document.getElementById("learnQuestion").value = "";
+      document.getElementById("learnAnswer").value = "";
+    } catch (e) {
+      msg.style.color = "#ff9f9f";
+      msg.textContent = "सेव करने में त्रुटि हुई।";
+    }
   };
+
 })();
