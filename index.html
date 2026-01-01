@@ -124,19 +124,19 @@
   <script src="voice/tts.js"></script>
   <script src="voice/stt.js"></script>
 
-  <!-- ================= BASIC PAGE LOGIC + VOICE ================= -->
+  <!-- ================= BASIC PAGE LOGIC + STT ================= -->
   <script>
-    document.getElementById("startBtn").addEventListener("click", function () {
-
-      // UI status
+    // 🔘 START BUTTON → STT शुरू करेगा
+    document.getElementById("startBtn").onclick = function () {
       document.getElementById("appStatus").textContent =
-        "संवाद प्रारंभ";
+        "मैं सुन रही हूँ… कृपया प्रश्न बोलिए";
 
-      // 🔊 अब डायनामिक TTS (tts.js के माध्यम से)
-      if (window.TTS) {
-        TTS.speak("अंजली आपसे संवाद के लिए तैयार है।");
+      if (window.STT) {
+        STT.start();
+      } else if (window.TTS) {
+        TTS.speak("मुझे सुनने की सुविधा उपलब्ध नहीं है।");
       }
-    });
+    };
 
     document.getElementById("adminBtn").onclick = function () {
       window.location.href = "admin.html";
