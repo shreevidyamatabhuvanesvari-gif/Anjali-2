@@ -1,7 +1,7 @@
 /* =========================================================
    KnowledgeBase.js
    Role: Persistent Knowledge Storage (IndexedDB)
-   Stage: 6
+   Stage: 6 (Fixed – SAFE Bulk Save)
    ========================================================= */
 
 (function (window) {
@@ -43,12 +43,12 @@
   }
 
   // ---------- Helpers ----------
-  function tx(storeName, mode = "readonly") {
-    return db.transaction(storeName, mode).objectStore(storeName);
-  }
-
   function now() {
     return Date.now();
+  }
+
+  function tx(storeName, mode = "readonly") {
+    return db.transaction(storeName, mode).objectStore(storeName);
   }
 
   // ---------- API ----------
@@ -59,7 +59,7 @@
       return true;
     },
 
-    // Save single QnA
+    // ---------- Save single QnA ----------
     async saveOne({ subject, topic, question, answer, tags = [] }) {
       await openDB();
       return new Promise((resolve, reject) => {
@@ -77,33 +77,47 @@
       });
     },
 
-    // Save bulk QnA (array of records)
+    // ---------- Save bulk QnA (SAFE chunked save) ----------
     async saveBulk(records = []) {
       await openDB();
-      return new Promise((resolve, reject) => {
-        const store = tx(STORE_QA, "readwrite");
-        let saved = 0;
 
-        records.forEach(r => {
-          const rec = {
-            subject: r.subject || "",
-            topic: r.topic || "",
-            question: r.question,
-            answer: r.answer,
-            tags: r.tags || [],
-            time: now()
+      const CHUNK_SIZE = 50; // मोबाइल/ब्राउज़र-safe
+      let totalSaved = 0;
+
+      for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+        const chunk = records.slice(i, i + CHUNK_SIZE);
+
+        await new Promise((resolve, reject) => {
+          const transaction = db.transaction(STORE_QA, "readwrite");
+          const store = transaction.objectStore(STORE_QA);
+
+          chunk.forEach(r => {
+            const rec = {
+              subject: r.subject || "",
+              topic: r.topic || "",
+              question: r.question,
+              answer: r.answer,
+              tags: r.tags || [],
+              time: now()
+            };
+            store.add(rec);
+          });
+
+          transaction.oncomplete = () => {
+            totalSaved += chunk.length;
+            resolve();
           };
-          const req = store.add(rec);
-          req.onsuccess = () => { saved++; };
-          req.onerror = () => { /* skip bad record */ };
-        });
 
-        store.transaction.oncomplete = () => resolve(saved);
-        store.transaction.onerror = () => reject(store.transaction.error);
-      });
+          transaction.onerror = () => {
+            reject(transaction.error);
+          };
+        });
+      }
+
+      return totalSaved;
     },
 
-    // Parse bulk raw text into records
+    // ---------- Parse bulk raw text ----------
     parseBulk(rawText, defaults = {}) {
       const blocks = rawText.split(/\n\s*\n/);
       const out = [];
@@ -119,7 +133,9 @@
             topic: defaults.topic || "",
             question: q[1].trim(),
             answer: a[1].trim(),
-            tags: t ? t[1].split(",").map(s => s.trim()).filter(Boolean) : []
+            tags: t
+              ? t[1].split(",").map(s => s.trim()).filter(Boolean)
+              : []
           });
         }
       });
@@ -127,7 +143,7 @@
       return out;
     },
 
-    // Simple stats
+    // ---------- Simple stats ----------
     async countAll() {
       await openDB();
       return new Promise((resolve, reject) => {
