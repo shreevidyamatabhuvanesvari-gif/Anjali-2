@@ -1,7 +1,7 @@
 /* =========================================================
    KnowledgeBase.js
-   Role: Persistent Knowledge Storage (IndexedDB)
-   Stage: 6 (Fixed – SAFE Bulk Save)
+   Role: Single Source IndexedDB Controller (AUTHORITATIVE)
+   Environment: HTTPS (GitHub Pages Compatible)
    ========================================================= */
 
 (function (window) {
@@ -9,27 +9,27 @@
 
   const DB_NAME = "AnjaliKnowledgeDB";
   const DB_VERSION = 1;
-  const STORE_QA = "qa_store";
+  const STORE = "qa_store";
 
   let db = null;
+  let opening = null; // 🔒 prevents parallel opens
 
-  // ---------- Open / Init DB ----------
+  // ---------- OPEN DB (SERIALIZED) ----------
   function openDB() {
-    return new Promise((resolve, reject) => {
-      if (db) return resolve(db);
+    if (db) return Promise.resolve(db);
+    if (opening) return opening;
 
+    opening = new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
 
       req.onupgradeneeded = (e) => {
         const d = e.target.result;
-        if (!d.objectStoreNames.contains(STORE_QA)) {
-          const store = d.createObjectStore(STORE_QA, {
+        if (!d.objectStoreNames.contains(STORE)) {
+          const s = d.createObjectStore(STORE, {
             keyPath: "id",
             autoIncrement: true
           });
-          store.createIndex("by_subject", "subject", { unique: false });
-          store.createIndex("by_topic", "topic", { unique: false });
-          store.createIndex("by_time", "time", { unique: false });
+          s.createIndex("time", "time", { unique: false });
         }
       };
 
@@ -40,15 +40,19 @@
 
       req.onerror = () => reject(req.error);
     });
+
+    return opening;
   }
 
-  // ---------- Helpers ----------
-  function now() {
-    return Date.now();
-  }
-
-  function tx(storeName, mode = "readonly") {
-    return db.transaction(storeName, mode).objectStore(storeName);
+  // ---------- TRANSACTION HELPER ----------
+  async function withStore(mode, fn) {
+    const d = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = d.transaction(STORE, mode);
+      const store = tx.objectStore(STORE);
+      fn(store, resolve, reject);
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   // ---------- API ----------
@@ -59,106 +63,63 @@
       return true;
     },
 
-    // ---------- Save single QnA ----------
-    async saveOne({ subject, topic, question, answer, tags = [] }) {
-      await openDB();
-      return new Promise((resolve, reject) => {
-        const rec = {
-          subject: subject || "",
-          topic: topic || "",
-          question,
-          answer,
-          tags,
-          time: now()
-        };
-        const req = tx(STORE_QA, "readwrite").add(rec);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => reject(req.error);
+    // ---- SAVE ONE (SAFE) ----
+    async saveOne(rec) {
+      return withStore("readwrite", (store, resolve) => {
+        store.add({
+          question: rec.question,
+          answer: rec.answer,
+          tags: rec.tags || [],
+          time: Date.now()
+        });
+        resolve(true);
       });
     },
 
-    // ---------- Save bulk QnA (SAFE chunked save) ----------
-    async saveBulk(records = []) {
-      await openDB();
+    // ---- SAVE BULK (CHUNKED + SERIAL) ----
+    async saveBulk(records) {
+      const CHUNK = 25;
+      let saved = 0;
 
-      const CHUNK_SIZE = 50; // मोबाइल/ब्राउज़र-safe
-      let totalSaved = 0;
+      for (let i = 0; i < records.length; i += CHUNK) {
+        const batch = records.slice(i, i + CHUNK);
 
-      for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-        const chunk = records.slice(i, i + CHUNK_SIZE);
-
-        await new Promise((resolve, reject) => {
-          const transaction = db.transaction(STORE_QA, "readwrite");
-          const store = transaction.objectStore(STORE_QA);
-
-          chunk.forEach(r => {
-            const rec = {
-              subject: r.subject || "",
-              topic: r.topic || "",
+        await withStore("readwrite", (store, resolve) => {
+          batch.forEach(r => {
+            store.add({
               question: r.question,
               answer: r.answer,
               tags: r.tags || [],
-              time: now()
-            };
-            store.add(rec);
+              time: Date.now()
+            });
           });
-
-          transaction.oncomplete = () => {
-            totalSaved += chunk.length;
-            resolve();
-          };
-
-          transaction.onerror = () => {
-            reject(transaction.error);
-          };
+          saved += batch.length;
+          resolve();
         });
       }
-
-      return totalSaved;
+      return saved;
     },
 
-    // ---------- Parse bulk raw text ----------
-    parseBulk(rawText, defaults = {}) {
-      const blocks = rawText.split(/\n\s*\n/);
-      const out = [];
-
-      blocks.forEach(b => {
-        const q = b.match(/Q:\s*([\s\S]+?)(?:\n|$)/i);
-        const a = b.match(/A:\s*([\s\S]+?)(?:\n|$)/i);
-        const t = b.match(/TAGS:\s*([\s\S]+)/i);
-
-        if (q && a) {
-          out.push({
-            subject: defaults.subject || "",
-            topic: defaults.topic || "",
-            question: q[1].trim(),
-            answer: a[1].trim(),
-            tags: t
-              ? t[1].split(",").map(s => s.trim()).filter(Boolean)
-              : []
-          });
-        }
-      });
-
-      return out;
-    },
-
-    // ---------- Simple stats ----------
-    async countAll() {
-      await openDB();
-      return new Promise((resolve, reject) => {
-        const req = tx(STORE_QA).count();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+    // ---- READ ALL (VIEW) ----
+    async getAll() {
+      return withStore("readonly", (store, resolve) => {
+        const out = [];
+        store.openCursor().onsuccess = (e) => {
+          const c = e.target.result;
+          if (c) {
+            out.push(c.value);
+            c.continue();
+          } else {
+            resolve(out);
+          }
+        };
       });
     }
   };
 
-  // ---------- Expose ----------
   Object.defineProperty(window, "KnowledgeBase", {
     value: KnowledgeBase,
-    writable: false,
-    configurable: false
+    writable: false
   });
 
 })(window);
