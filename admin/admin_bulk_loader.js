@@ -1,7 +1,7 @@
 /* =========================================================
    admin_bulk_loader.js
    Role: Bulk Learning Loader (1000+ QnA)
-   Stage: 5
+   Stage: 5 (Fixed – REAL SAVE)
    ========================================================= */
 
 (function () {
@@ -45,7 +45,7 @@
         "></textarea>
 
       <div style="display:flex; gap:8px; margin-top:10px; justify-content:space-between; flex-wrap:wrap;">
-        <div style="font-size:12px; color:#9fdf9f;" id="bulkInfo">
+        <div style="font-size:12px;" id="bulkInfo">
           अभी कोई डेटा प्रोसेस नहीं हुआ
         </div>
         <div>
@@ -70,6 +70,7 @@
   if (openBtn) {
     openBtn.onclick = () => {
       modal.style.display = "flex";
+      document.getElementById("bulkInfo").style.color = "#9fdf9f";
       document.getElementById("bulkInfo").textContent =
         "Bulk मोड सक्रिय — अभी सेव नहीं किया गया";
     };
@@ -83,28 +84,40 @@
     modal.style.display = "none";
   };
 
-  // ---- Process (UI + Validation only) ----
-  document.getElementById("bulkProcess").onclick = () => {
-    const raw = document.getElementById("bulkInput").value.trim();
-    if (!raw) {
-      document.getElementById("bulkInfo").style.color = "#ff9f9f";
-      document.getElementById("bulkInfo").textContent = "कोई डेटा नहीं मिला।";
+  // ---- REAL PROCESS + SAVE ----
+  document.getElementById("bulkProcess").onclick = async () => {
+    const info = document.getElementById("bulkInfo");
+
+    if (!window.KnowledgeBase) {
+      info.style.color = "#ff9f9f";
+      info.textContent = "KnowledgeBase उपलब्ध नहीं है।";
       return;
     }
 
-    const blocks = raw.split(/\n\s*\n/); // empty line separator
-    let validCount = 0;
+    const raw = document.getElementById("bulkInput").value.trim();
+    if (!raw) {
+      info.style.color = "#ff9f9f";
+      info.textContent = "कोई डेटा नहीं मिला।";
+      return;
+    }
 
-    blocks.forEach(b => {
-      if (/Q:\s*.+/i.test(b) && /A:\s*.+/i.test(b)) {
-        validCount++;
-      }
-    });
+    // Parse blocks
+    const records = KnowledgeBase.parseBulk(raw);
+    if (!records.length) {
+      info.style.color = "#ff9f9f";
+      info.textContent = "मान्य प्रश्न–उत्तर नहीं मिले।";
+      return;
+    }
 
-    document.getElementById("bulkInfo").style.color = "#9fdf9f";
-    document.getElementById("bulkInfo").textContent =
-      `मान्य प्रश्नोत्तर ब्लॉक: ${validCount} / ${blocks.length}
-       (सेव अगले चरण में जुड़ेगा)`;
+    try {
+      const saved = await KnowledgeBase.saveBulk(records);
+      info.style.color = "#9fdf9f";
+      info.textContent =
+        `स्थायी रूप से सेव किए गए प्रश्न–उत्तर: ${saved}`;
+    } catch (e) {
+      info.style.color = "#ff9f9f";
+      info.textContent = "Bulk सेव करने में त्रुटि हुई।";
+    }
   };
 
 })();
