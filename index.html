@@ -124,20 +124,18 @@
   <script src="voice/tts.js"></script>
   <script src="voice/stt.js"></script>
 
-  <!-- ================= BASIC PAGE LOGIC + VOICE TEST ================= -->
+  <!-- ================= BASIC PAGE LOGIC + VOICE ================= -->
   <script>
     document.getElementById("startBtn").addEventListener("click", function () {
 
       // UI status
       document.getElementById("appStatus").textContent =
-        "संवाद प्रारंभ (आवाज़ परीक्षण)";
+        "संवाद प्रारंभ";
 
-      // 🔊 DIRECT, GUARANTEED TTS CALL (User Gesture Bound)
-      const u = new SpeechSynthesisUtterance(
-        "यह अंतिम परीक्षण है। यदि अब भी आवाज़ नहीं आई, तो ब्राउज़र ने आवाज़ को पूरी तरह ब्लॉक कर दिया है।"
-      );
-      u.lang = "hi-IN";
-      window.speechSynthesis.speak(u);
+      // 🔊 अब डायनामिक TTS (tts.js के माध्यम से)
+      if (window.TTS) {
+        TTS.speak("अंजली आपसे संवाद के लिए तैयार है।");
+      }
     });
 
     document.getElementById("adminBtn").onclick = function () {
