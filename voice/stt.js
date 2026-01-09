@@ -1,9 +1,10 @@
 /* ==========================================================
-   stt.js
-   Level-4
+   voice/stt.js
+   Level-4 / Version-4.x
    ROLE:
-   Real microphone speech-to-text using Web Speech API
-   Works with STT_LongListening
+   True microphone Speech-To-Text engine for Anjali.
+   Uses browser Web Speech API.
+   Works with STT_LongListening.js
    ========================================================== */
 
 (function (window) {
@@ -13,54 +14,86 @@
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    alert("इस ब्राउज़र में Voice Recognition समर्थित नहीं है");
+    alert("यह ब्राउज़र Speech Recognition सपोर्ट नहीं करता। Chrome उपयोग करें।");
     return;
   }
 
-  const recognition = new SpeechRecognition();
-  recognition.lang = "hi-IN";
-  recognition.continuous = false;
-  recognition.interimResults = false;
+  let recognition = null;
+  let listening = false;
 
-  let active = false;
+  function createRecognition() {
+    const r = new SpeechRecognition();
 
-  recognition.onresult = function (event) {
-    const text = event.results[0][0].transcript;
-    if (window.STT.onResult) {
-      STT.onResult(text);
-    }
-  };
+    r.lang = "hi-IN";         // Hindi first
+    r.continuous = false;    // LongListening will restart it
+    r.interimResults = false;
+    r.maxAlternatives = 1;
 
-  recognition.onend = function () {
-    active = false;
-    if (window.STT.onEnd) STT.onEnd();
-  };
+    r.onresult = function (event) {
+      if (!event.results || !event.results[0]) return;
 
-  recognition.onerror = function () {
-    active = false;
-    if (window.STT.onError) STT.onError();
-  };
+      const text = event.results[0][0].transcript;
 
-  window.STT = Object.freeze({
+      if (window.STT.onResult) {
+        window.STT.onResult(text);
+      }
+    };
+
+    r.onerror = function () {
+      if (window.STT.onError) {
+        window.STT.onError();
+      }
+    };
+
+    r.onend = function () {
+      listening = false;
+      if (window.STT.onEnd) {
+        window.STT.onEnd();
+      }
+    };
+
+    return r;
+  }
+
+  /* ===============================
+     PUBLIC STT API
+     =============================== */
+  window.STT = {
+    onResult: null,
+    onEnd: null,
+    onError: null,
+
     start() {
-      if (active) return;
+      if (listening) return;
+
       try {
+        if (!recognition) {
+          recognition = createRecognition();
+        }
+
+        listening = true;
         recognition.start();
-        active = true;
-      } catch {}
+      } catch (e) {
+        listening = false;
+      }
     },
 
     stop() {
       try {
-        recognition.stop();
-      } catch {}
-      active = false;
+        if (recognition) {
+          recognition.stop();
+        }
+      } catch (e) {}
+      listening = false;
     },
 
-    // hooks for STT_LongListening
-    onResult: null,
-    onEnd: null,
-    onError: null
-  });
+    status() {
+      return {
+        listening,
+        engine: "browser-speech-api",
+        language: "hi-IN"
+      };
+    }
+  };
 
 })(window);
